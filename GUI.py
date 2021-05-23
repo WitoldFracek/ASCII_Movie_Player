@@ -101,6 +101,9 @@ class AsciiMovie(tk.Tk):
         self.__config = get_config()
         self.geometry(f'{self.__config["length"]}x{self.__config["height"]}')
         self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
+        self.bind('<Control-o>', self.open_file)
+        self.bind('<Control-s>', lambda e: save_list(self.__ascii_frames))
+        self.bind('<Control-l>', lambda e: load_list())
 
         # --- variables ----------------------------------
         self.__video_path = tk.StringVar()
@@ -133,6 +136,8 @@ class AsciiMovie(tk.Tk):
         self.prepare_minature()
         self.prepare_main_manu()
         self.prepare_loading_bar()
+
+        amp = AsciiMoviePlayer(self, None, None, None)
 
     def prepare_main_layout(self):
         self.menu_frame = tk.Frame(self, bg=PURPLE)
@@ -167,9 +172,9 @@ class AsciiMovie(tk.Tk):
 
     def prepare_file_menu_cascade(self, parent_menu):
         file_menu = tk.Menu(parent_menu)
-        file_menu.add_command(label='Open', command=self.open_file)
-        file_menu.add_command(label='Save', command=lambda: save_list(self.__ascii_frames))
-        file_menu.add_command(label='Load', command=self.load_from_pickle)
+        file_menu.add_command(label='Open (ctrl+O)', command=lambda e: self.open_file(e))
+        file_menu.add_command(label='Save (ctrl+S)', command=lambda: save_list(self.__ascii_frames))
+        file_menu.add_command(label='Load (ctrl+L)', command=self.load_from_pickle)
         return file_menu
 
     def prepare_minature(self):
@@ -255,7 +260,7 @@ class AsciiMovie(tk.Tk):
             self.bar_parts[n].grid(row=0, column=n, sticky='news')
 
     # --- actions ------------------------
-    def open_file(self):
+    def open_file(self, e=None):
         filename = askopenfilename(initialdir=os.getcwd(), title='Select data file',
                                    filetypes=(('video files', '.mp4'),))
         if filename == "":
@@ -275,9 +280,22 @@ class AsciiMovie(tk.Tk):
 
 
 class AsciiMoviePlayer(tk.Toplevel):
-    def __init__(self, master, **kw):
+    def __init__(self, master, frame_list, duration, is_looped, **kw):
         tk.Toplevel.__init__(self, master, **kw)
         self.display_frame = tk.Frame(self)
+        self.display_frame.rowconfigure(0, weight=100)
+        self.display_frame.rowconfigure(1, weight=1)
+        self.display_frame.rowconfigure(2, weight=1)
+        self.display_frame.columnconfigure(0, weight=1)
+        self.display_frame.columnconfigure(0, weight=4)
+        self.display_frame.grid()
+        self.display_frame.grid_propagate(0)
+
+        self.__button_text = tk.StringVar(self, "PLAY")
+
+        self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=tk.GROOVE,
+                                           bg=PURPLE,  highlightcolor=LILA, activebackground=SOMBRA_PURPLE)
+        self.play_pause_button.grid(row=2, column=0, sticky='news')
 
 
 
