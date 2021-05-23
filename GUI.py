@@ -102,10 +102,15 @@ def load_list():
         return [], ""
     with open(file_path, 'rb') as file:
         try:
-            ret = rick.load(file)
+            ret_list = rick.load(file)
+            duration = rick.load(file)
+            frame_count = rick.load(file)
+            fps = rick.load(file)
+            length = rick.load(file)
+            height = rick.load(file)
         except Exception:
             return [], ""
-    return ret, file_path
+    return ret_list, duration, frame_count, fps, length, height, file_path
 
 
 class AsciiMovie(tk.Tk):
@@ -119,7 +124,7 @@ class AsciiMovie(tk.Tk):
         self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
         self.bind('<Control-o>', self.open_file)
         self.bind('<Control-s>', lambda e: save_list(self.__ascii_frames))
-        self.bind('<Control-l>', lambda e: load_list())
+        self.bind('<Control-l>', lambda e: self.load_to_pickle)
 
         # --- variables ----------------------------------
         self.__video_path = tk.StringVar()
@@ -138,8 +143,10 @@ class AsciiMovie(tk.Tk):
         self.__pixelate_choice = tk.StringVar()
         self.__pixelate_choice.set('20')
         self.__ascii_frames = []
+        self.__converted_movie_lenght = 0
         self.__converted_movie_height = 0
-        self.__converted_movie_width = 0
+        self.__converted_movie_px_lenght = 0
+        self.__converted_movie_px_height = 0
         self.__converted_movie_duration = 0
         self.__converted_movie_fps = 0
         self.__converted_movie_frame_count = 0
@@ -193,11 +200,13 @@ class AsciiMovie(tk.Tk):
         self.menu_bar.add_cascade(label='File', menu=self.prepare_file_menu_cascade(self.menu_bar))
 
     def prepare_file_menu_cascade(self, parent_menu):
-        file_menu = tk.Menu(parent_menu)
-        file_menu.add_command(label='Open (ctrl+O)', command=lambda e: self.open_file(e))
-        file_menu.add_command(label='Save (ctrl+S)', command=lambda: save_list(self.__ascii_frames))
-        file_menu.add_command(label='Load (ctrl+L)', command=self.load_from_pickle)
-        return file_menu
+        self.file_menu = tk.Menu(parent_menu)
+        self.file_menu.add_command(label='Open mp4 (ctrl+O)', command=self.open_file)
+        self.file_menu.add_command(label='Save (ctrl+S)', command=self.load_to_pickle)
+        self.file_menu.add_command(label='Load (ctrl+L)', command=self.load_from_pickle)
+        if not self.__ascii_frames:
+            self.file_menu.entryconfig('Load (ctrl+L)', state='disabled')
+        return self.file_menu
 
     def prepare_minature(self):
         if self.__video_path.get() == "":
@@ -273,7 +282,7 @@ class AsciiMovie(tk.Tk):
         self.check_inverse_colours.grid(row=5, column=0, sticky='news')
 
         self.play_button = tk.Button(self.menu_frame, text='PLAY', font=20, bg=PURPLE, relief=tk.GROOVE,
-                                     highlightcolor=LILA, activebackground=SOMBRA_PURPLE, command=self.play_movie_from_file)
+                                     highlightcolor=LILA, activebackground=SOMBRA_PURPLE, command=self.decide_source)
         self.play_button.grid(row=6, column=0, sticky='news')
 
     def prepare_loading_bar(self):
@@ -295,8 +304,20 @@ class AsciiMovie(tk.Tk):
         self.__video_pickle_path.set("")
         self.prepare_minature()
 
+    def load_to_pickle(self):
+        file_path: str = asksaveasfilename(filetypes=(('Pickle files', '.pkl'),))
+        if not file_path.endswith('.pkl'):
+            file_path += '.pkl'
+        with open(file_path, 'wb') as file:
+            rick.dump(self.__ascii_frames, file)
+            rick.dump(self.__converted_movie_duration, file)
+            rick.dump(self.__converted_movie_frame_count, file)
+            rick.dump(self.__converted_movie_fps, file)
+            rick.dump(self.__converted_movie_lenght, file)
+            rick.dump(self.__converted_movie_height, file)
+
     def load_from_pickle(self):
-        self.__ascii_frames, path = load_list()
+        self.__ascii_frames, duration, frame_count, fps, length, height, path = load_list()
         self.__list_loaded.set(1)
         self.prepare_sandard_minature()
         self.__video_pickle_path.set(path)
@@ -305,7 +326,7 @@ class AsciiMovie(tk.Tk):
 
     def decide_source(self):
         if self.__list_loaded.get() > 0:
-            pass
+            self.play_video()
         else:
             self.play_movie_from_file()
 
@@ -313,40 +334,85 @@ class AsciiMovie(tk.Tk):
         rot_left = True if self.__rotate_left.get() > 0 else False
         rot_right = True if self.__rotate_right.get() > 0 else False
         is_inversed = True if self.__inverse_colours.get() > 0 else False
-        ret, duration, frame_count, fps, length, width = fc.convert(self.__video_path.get(),
+        ret, duration, frame_count, fps, length, height, px_length, px_height = fc.convert(self.__video_path.get(),
                                                               int(self.__pixelate_choice.get()),
                                                               rot_right, rot_left, is_inversed, self)
-        for elem in ret:
-            print(elem)
-            sleep(duration/frame_count)
+        self.__ascii_frames = ret
+        self.__converted_movie_duration = duration
+        self.__converted_movie_frame_count = frame_count
+        self.__converted_movie_fps = fps
+        self.__converted_movie_lenght = length
+        self.__converted_movie_height = height
+        self.__converted_movie_px_lenght = px_length
+        self.__converted_movie_px_height = px_height
+
+        self.play_video()
+
+    def play_video(self):
+        apk = AsciiMoviePlayer(self,
+                               self.__ascii_frames,
+                               self.__converted_movie_lenght,
+                               self.__converted_movie_height,
+                               self.__converted_movie_duration,
+                               self.__converted_movie_frame_count,
+                               self.__converted_movie_px_lenght,
+                               self.__converted_movie_px_height,
+                               self.__is_looped,
+                               self.__config['logo'])
+        print(self.__converted_movie_lenght)
+        print(self.__converted_movie_height)
+        apk.grab_set()
+        for fr in self.bar_parts:
+            fr.config(bg='black')
 
 
 class AsciiMoviePlayer(tk.Toplevel):
-    def __init__(self, master, frame_list, length, height, duration, is_looped, logo_path, **kw):
+    def __init__(self, master, frame_list, length, height, duration, frame_count, px_l, px_h, is_looped, logo_path, **kw):
         tk.Toplevel.__init__(self, master, **kw)
         self.grab_set()
         self.iconphoto(False, tk.PhotoImage(file=logo_path))
         self.geometry(f'{length}x{height + 30}')
-        self.resizable(False, False)
+        self.resizable(True, True)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.display_frame = tk.Frame(self, bg='black')
-        self.display_frame.rowconfigure(0, weight=1)
+        self.display_frame.rowconfigure(0, weight=100)
         self.display_frame.rowconfigure(1, weight=1)
         self.display_frame.rowconfigure(2, weight=1)
         self.display_frame.columnconfigure(0, weight=1)
-        self.display_frame.columnconfigure(1, weight=1)
+        self.display_frame.columnconfigure(1, weight=4)
         self.display_frame.grid(row=0, column=0, sticky='news')
-        self.display_frame.grid_propagate(0)
 
+        self.__ascii_frames = frame_list
+        self.__length = length
+        self.__height = height
+        self.__px_length = px_l
+        self.__px_height = px_h
+        self.__duration = duration
+        self.__frame_count = frame_count
+        self.__display_text = tk.StringVar(self, "")
         self.__button_text = tk.StringVar(self, "PLAY")
 
         self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=tk.GROOVE,
-                                           bg=PURPLE,  highlightcolor=LILA, activebackground=SOMBRA_PURPLE)
+                                           bg=PURPLE,  highlightcolor=LILA, activebackground=SOMBRA_PURPLE,
+                                           command=self.play_video)
         self.play_pause_button.grid(row=2, column=0, sticky='news')
 
         self.empty_label = tk.Label(self.display_frame, bg=PURPLE)
         self.empty_label.grid(row=2, column=1, sticky='news')
+
+        consolas = tkFont.Font(family='Consolas', size=15)
+        self.display = tk.Label(self.display_frame, bg='black', fg='white', textvariable=self.__display_text,
+                                justify='left', font=('Consolas', 10), anchor='center', width=self.__px_length)
+        self.display.grid(row=0, column=0, columnspan=2, sticky='news')
+
+    def play_video(self):
+        for fr in self.__ascii_frames:
+            self.__display_text.set(fr)
+            self.update_idletasks()
+            sleep(self.__duration / self.__frame_count)
+
+
 
 
 

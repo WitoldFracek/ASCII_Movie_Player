@@ -4,7 +4,7 @@ import numpy as np
 import os
 import time
 
-ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '⣿⣿']
+ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', 'WW']
 SOMBRA_PURPLE = '#a350f9'
 
 
@@ -23,14 +23,17 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
     success = 1
     frames = []
     length = 0
-    width = 0
+    height = 0
+    px_length = 0
+    px_height = 0
     parent.update()
     while success:
         success, image = video.read()
         if success:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image_pil = Image.fromarray(image)
-            pixelated, length, width = pixelate(image_pil, pixel_size, rotate_left, rotate_right, is_inversed)
+            length, height = image_pil.size[0], image_pil.size[1]
+            pixelated, px_length, px_height = pixelate(image_pil, pixel_size, rotate_left, rotate_right, is_inversed)
             frames.append(pixelated)
             counter += 1
             lb = int(counter * len(parent.bar_parts) / frame_count)
@@ -41,7 +44,7 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
     for fr in parent.bar_parts:
         parent.update()
         fr.config(bg=SOMBRA_PURPLE)
-    return frames, duration, frame_count, fps, length, width
+    return frames, duration, frame_count, fps, length, height, px_length, px_height
 
 
 def pixelate(image, pixel_size, rotate_left, rotate_right, is_inversed):
@@ -55,11 +58,11 @@ def pixelate(image, pixel_size, rotate_left, rotate_right, is_inversed):
         image = ImageOps.invert(image)
     ar = np.asarray(image)
     length = np.shape(ar)[0] - 1
-    width = np.shape(ar)[1] - 1
+    height = np.shape(ar)[1] - 1
     out = ''
     for i in range(length):
-        for j in range(width):
+        for j in range(height):
             out += ASCII[ar[i][j] // 25]
         out += '\n'
-    return out, length, width
+    return out, length, height
 
