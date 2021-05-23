@@ -1,8 +1,7 @@
 from PIL import Image, ImageTk
 import cv2
 import numpy as np
-import os
-import time
+from time import sleep
 import tkinter as tk
 from tkinter import font as tkFont
 import json
@@ -12,10 +11,12 @@ from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
 import pickle as rick
 import os
+import frame_converter as fc
 
 # D:/HDD/programowanie_python/DiscordBots/PicturesBot/bad_apple/bad_apple.mp4
 
 #constants
+LOADING_BAR_FRACTIONS = 100
 ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '⣿⣿']
 CONFIG = '.\\ascii_movie_config.json'
 LIGHT_GRAY = '#bdbdbd'
@@ -137,7 +138,7 @@ class AsciiMovie(tk.Tk):
         self.prepare_main_manu()
         self.prepare_loading_bar()
 
-        amp = AsciiMoviePlayer(self, None, None, None)
+        amp = AsciiMoviePlayer(self, None, 200, 100, None, None, self.__config['logo'])
 
     def prepare_main_layout(self):
         self.menu_frame = tk.Frame(self, bg=PURPLE)
@@ -162,7 +163,7 @@ class AsciiMovie(tk.Tk):
         self.loading_bar_frame.grid(row=1, column=0, columnspan=2, sticky='news')
         self.loading_bar_frame.grid_propagate(0)
         self.loading_bar_frame.rowconfigure(0, weight=1)
-        for n in range(10):
+        for n in range(LOADING_BAR_FRACTIONS):
             self.loading_bar_frame.columnconfigure(n, weight=1)
 
     def prepare_file_menu_bar(self):
@@ -251,12 +252,12 @@ class AsciiMovie(tk.Tk):
         self.check_inverse_colours.grid(row=5, column=0, sticky='news')
 
         self.play_button = tk.Button(self.menu_frame, text='PLAY', font=20, bg=PURPLE, relief=tk.GROOVE,
-                                     highlightcolor=LILA, activebackground=SOMBRA_PURPLE)
+                                     highlightcolor=LILA, activebackground=SOMBRA_PURPLE, command=self.play_movie_from_file)
         self.play_button.grid(row=6, column=0, sticky='news')
 
     def prepare_loading_bar(self):
-        self.bar_parts = [tk.Frame(self.loading_bar_frame, bg='black') for _ in range(10)]
-        for n in range(10):
+        self.bar_parts = [tk.Frame(self.loading_bar_frame, bg='black') for _ in range(LOADING_BAR_FRACTIONS)]
+        for n in range(LOADING_BAR_FRACTIONS):
             self.bar_parts[n].grid(row=0, column=n, sticky='news')
 
     # --- actions ------------------------
@@ -278,17 +279,34 @@ class AsciiMovie(tk.Tk):
         self.__video_path.set(path)
         self.__video_name.set(self.__video_path.get().split('/')[-1])
 
+    def play_movie_from_file(self):
+        rot_left = True if self.__rotate_left.get() > 0 else False
+        rot_right = True if self.__rotate_right.get() > 0 else False
+        is_inversed = True if self.__inverse_colours.get() > 0 else False
+        ret, duration, frame_count, fps, length, width = fc.convert(self.__video_path.get(),
+                                                              int(self.__pixelate_choice.get()),
+                                                              rot_right, rot_left, is_inversed, self)
+        for elem in ret:
+            print(elem)
+            sleep(duration/frame_count)
+
 
 class AsciiMoviePlayer(tk.Toplevel):
-    def __init__(self, master, frame_list, duration, is_looped, **kw):
+    def __init__(self, master, frame_list, length, height, duration, is_looped, logo_path, **kw):
         tk.Toplevel.__init__(self, master, **kw)
-        self.display_frame = tk.Frame(self)
-        self.display_frame.rowconfigure(0, weight=100)
+        self.grab_set()
+        self.iconphoto(False, tk.PhotoImage(file=logo_path))
+        self.geometry(f'{length}x{height + 30}')
+        self.resizable(False, False)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.display_frame = tk.Frame(self, bg='black')
+        self.display_frame.rowconfigure(0, weight=1)
         self.display_frame.rowconfigure(1, weight=1)
         self.display_frame.rowconfigure(2, weight=1)
         self.display_frame.columnconfigure(0, weight=1)
-        self.display_frame.columnconfigure(0, weight=4)
-        self.display_frame.grid()
+        self.display_frame.columnconfigure(1, weight=1)
+        self.display_frame.grid(row=0, column=0, sticky='news')
         self.display_frame.grid_propagate(0)
 
         self.__button_text = tk.StringVar(self, "PLAY")
@@ -296,6 +314,9 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=tk.GROOVE,
                                            bg=PURPLE,  highlightcolor=LILA, activebackground=SOMBRA_PURPLE)
         self.play_pause_button.grid(row=2, column=0, sticky='news')
+
+        self.empty_label = tk.Label(self.display_frame, bg=PURPLE)
+        self.empty_label.grid(row=2, column=1, sticky='news')
 
 
 
