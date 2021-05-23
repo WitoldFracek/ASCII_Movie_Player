@@ -73,6 +73,21 @@ def get_random_frame(path: str):
     return im_pil.convert('L')
 
 
+def get_quarter_frame(path: str):
+    if not os.path.exists(path):
+        return None
+    if not path.endswith('.mp4'):
+        return None
+    video = cv2.VideoCapture(path)
+    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    index = max(2, int(frame_count/4))
+    video.set(cv2.CAP_PROP_POS_FRAMES, index - 1)
+    success, image = video.read()
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    im_pil = Image.fromarray(image)
+    return im_pil.convert('L')
+
+
 def save_list(frame_list):
     file_path: str = asksaveasfilename(filetypes=(('Pickle files', '.pkl'),))
     if not file_path.endswith('.pkl'):
@@ -111,6 +126,7 @@ class AsciiMovie(tk.Tk):
         self.__video_path.set(self.__config['video path'])
         self.__video_name = tk.StringVar()
         self.__video_name.set(self.__video_path.get().split('/')[-1])
+        self.__video_pickle_path = tk.StringVar(self, "")
         self.__is_looped = tk.IntVar()
         self.__is_looped.set(0)
         self.__rotate_right = tk.IntVar()
@@ -122,6 +138,11 @@ class AsciiMovie(tk.Tk):
         self.__pixelate_choice = tk.StringVar()
         self.__pixelate_choice.set('20')
         self.__ascii_frames = []
+        self.__converted_movie_height = 0
+        self.__converted_movie_width = 0
+        self.__converted_movie_duration = 0
+        self.__converted_movie_fps = 0
+        self.__converted_movie_frame_count = 0
         self.__list_loaded = tk.IntVar(self, 0)
 
         # --- prepare visual -----------------------------
@@ -138,7 +159,7 @@ class AsciiMovie(tk.Tk):
         self.prepare_main_manu()
         self.prepare_loading_bar()
 
-        amp = AsciiMoviePlayer(self, None, 200, 100, None, None, self.__config['logo'])
+        #amp = AsciiMoviePlayer(self, None, 200, 100, None, None, self.__config['logo'])
 
     def prepare_main_layout(self):
         self.menu_frame = tk.Frame(self, bg=PURPLE)
@@ -190,19 +211,19 @@ class AsciiMovie(tk.Tk):
             (self.minature_frame.winfo_width(), self.minature_frame.winfo_height()))
         image2 = ImageTk.PhotoImage(image_png)
         image_png.close()
-        self.minature_label = tk.Label(self.minature_frame, image=image2, bg='orange')
+        self.minature_label = tk.Label(self.minature_frame, image=image2, bg='black')
         self.minature_label.im = image2
         self.minature_label.grid(row=0, column=0, sticky='news')
 
     def prepare_custom_minature(self):
         self.minature_frame.update()
-        image = get_random_frame(self.__config['video path'])
+        image = get_quarter_frame(self.__config['video path'])
         if image is None:
             self.prepare_sandard_minature()
             return
         image = image.resize((self.minature_frame.winfo_width(), self.minature_frame.winfo_height()), Image.NEAREST)
         image2 = ImageTk.PhotoImage(image)
-        self.minature_label = tk.Label(self.minature_frame, image=image2, bg='orange')
+        self.minature_label = tk.Label(self.minature_frame, image=image2, bg='black')
         self.minature_label.im = image2
         self.minature_label.grid(row=0, column=0, sticky='news')
 
@@ -270,14 +291,23 @@ class AsciiMovie(tk.Tk):
         self.__video_name.set(self.__video_path.get().split('/')[-1])
         self.__config['video path'] = filename
         save_config(self.__config)
+        self.__list_loaded.set(0)
+        self.__video_pickle_path.set("")
         self.prepare_minature()
 
     def load_from_pickle(self):
         self.__ascii_frames, path = load_list()
         self.__list_loaded.set(1)
         self.prepare_sandard_minature()
-        self.__video_path.set(path)
-        self.__video_name.set(self.__video_path.get().split('/')[-1])
+        self.__video_pickle_path.set(path)
+        self.__video_path.set("")
+        self.__video_name.set(self.__video_pickle_path.get().split('/')[-1])
+
+    def decide_source(self):
+        if self.__list_loaded.get() > 0:
+            pass
+        else:
+            self.play_movie_from_file()
 
     def play_movie_from_file(self):
         rot_left = True if self.__rotate_left.get() > 0 else False

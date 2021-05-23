@@ -34,7 +34,7 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
             frames.append(pixelated)
             counter += 1
             lb = int(counter * len(parent.bar_parts) / frame_count)
-            if counter % int(frame_count/len(parent.bar_parts)) == 0:
+            if counter % int(frame_count/len(parent.bar_parts)) if int(frame_count/len(parent.bar_parts)) != 0 else 1 == 0:
                 for n in range(min(lb, len(parent.bar_parts))):
                     parent.update()
                     parent.bar_parts[n].config(bg=SOMBRA_PURPLE)
