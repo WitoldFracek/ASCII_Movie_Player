@@ -19,9 +19,6 @@ import frame_converter as fc
 LOADING_BAR_FRACTIONS = 100
 ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '⣿⣿']
 CONFIG = '.\\ascii_movie_config.json'
-SOMBRA_PURPLE = '#a350f9'
-#HELV_20 = tkFont.Font(family='Helvetica', size=20)
-#HELV_14 = tkFont.Font(family='Helvetica', size=14)
 
 
 def prepare_config():
@@ -33,6 +30,9 @@ def prepare_config():
             if key not in right:
                 create_config()
                 return
+        if conf['height'] < 100 or conf['length'] < 100:
+            create_config()
+            return
     else:
         create_config()
 
@@ -94,7 +94,6 @@ class AsciiMovie(tk.Tk):
         prepare_config()
         self.__config = get_config()
         self.geometry(f'{self.__config["length"]}x{self.__config["height"]}')
-        self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
         self.bind('<Control-o>', self.open_file)
         self.bind('<Control-s>', self.load_to_pickle)
         self.bind('<Control-l>', self.load_from_pickle)
@@ -128,12 +127,9 @@ class AsciiMovie(tk.Tk):
         self.__video_name = tk.StringVar()
         self.__video_name.set(self.__video_path.get().split('/')[-1])
         self.__video_pickle_path = tk.StringVar(self, "")
-        self.__is_looped = tk.IntVar()
-        self.__is_looped.set(0)
-        self.__rotate_right = tk.IntVar()
-        self.__rotate_right.set(0)
-        self.__rotate_left = tk.IntVar()
-        self.__rotate_left.set(0)
+        self.__is_looped = tk.IntVar(self, 0)
+        self.__rotate_right = tk.IntVar(self, 0)
+        self.__rotate_left = tk.IntVar(self, 0)
         self.__invert_colours = tk.IntVar(self, 0)
         self.__pixelate_choice = tk.StringVar()
         self.__pixelate_choice.set('20')
@@ -157,11 +153,22 @@ class AsciiMovie(tk.Tk):
         self.rowconfigure(1, weight=1)
         self.grid_propagate(0)
 
+        self.set_icon()
         self.prepare_main_layout()
         self.prepare_file_menu_bar()
         self.prepare_minature()
         self.prepare_main_manu()
         self.prepare_loading_bar()
+
+    def set_icon(self):
+        if not os.path.exists(self.__config['logo']):
+            if not os.path.exists(self.__config['error']):
+                messagebox.showerror('CONFIG FILE DAMAGED', 'Configuration file is damaged')
+                return
+            else:
+                self.iconphoto(False, tk.PhotoImage(file=self.__config['error']))
+        else:
+            self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
 
     def prepare_main_layout(self):
         self.menu_frame = tk.Frame(self, bg='black')
@@ -206,14 +213,23 @@ class AsciiMovie(tk.Tk):
 
     def prepare_colour_cascade(self, parent_menu):
         self.colour_menu = tk.Menu(parent_menu)
+        counter = 0
         for key in self.__colours:
-            self.colour_menu.add_command(label=key.lower(), command=lambda: self.set_colour_theme(self.__colours[key]))
+            colour = self.__colours[key]
+            self.colour_menu.add_command(label=key.lower(), command=lambda x=colour: self.set_colour_theme(x))
+            print(colour)
+            counter += 1
         return self.colour_menu
 
     def set_colour_theme(self, colour):
-        self.MAIN_COLOUR = colour[0]
-        self.LIGHT_MAIN_COLOUR = colour[1]
-        self.MAIN_BG = colour[2]
+        c1, c2, c3 = colour
+        self.MAIN_COLOUR = c1
+        self.LIGHT_MAIN_COLOUR = c2
+        self.MAIN_FG = c3
+        self.__config['main colour'] = self.MAIN_COLOUR
+        self.__config['light colour'] = self.LIGHT_MAIN_COLOUR
+        self.__config['foreground colour'] = self.MAIN_FG
+        save_config(self.__config)
         self.update_colours()
 
     def update_colours(self):
@@ -245,7 +261,7 @@ class AsciiMovie(tk.Tk):
             messagebox.showerror('DAMAGED CONFIGURATION FILE', 'Configuration file is damaged.')
             return
         else:
-            image_png = Image.open(self.__config['cover photo']).resize((self.minature_frame.winfo_width(),
+            image_png = Image.open(self.__config['error']).resize((self.minature_frame.winfo_width(),
                                                                          self.minature_frame.winfo_height()))
             image2 = ImageTk.PhotoImage(image_png)
             image_png.close()
