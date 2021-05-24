@@ -28,6 +28,8 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
     px_height = 0
     parent.update()
     while success:
+        if parent.force_cancel.get() == 1:
+            return [], 0, 0, 0, 0, 0, 0, 0
         success, image = video.read()
         if success:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

@@ -112,6 +112,8 @@ class AsciiMovie(tk.Tk):
         self.__converted_movie_fps = 0
         self.__converted_movie_frame_count = 0
         self.__list_loaded = tk.IntVar(self, 0)
+        self.__convert_button_text = tk.StringVar(self, "CONVERT")
+        self.force_cancel = tk.IntVar(self, 0)
 
         # --- prepare visual -----------------------------
         self.resizable(False, False)
@@ -209,7 +211,8 @@ class AsciiMovie(tk.Tk):
 
         choices = ['10', '15', '20', '25', '30', '35', '40']
         fnt = tkFont.Font(family='Helvetica', size=14)
-        self.pixelate_option_menu = tk.OptionMenu(self.pixelate_frame, self.__pixelate_choice, *choices)
+        self.pixelate_option_menu = tk.OptionMenu(self.pixelate_frame, self.__pixelate_choice, *choices,
+                                                  command=self.parameter_change_convertoin)
         self.pixelate_option_menu.configure(font=20, bg=PURPLE, fg='black', highlightcolor=PURPLE,
                                             activebackground=PURPLE, relief=tk.GROOVE)
         menu = self.pixelate_frame.nametowidget(self.pixelate_option_menu.menuname)
@@ -227,21 +230,23 @@ class AsciiMovie(tk.Tk):
 
         self.check_right = tk.Checkbutton(self.menu_frame, variable=self.__rotate_right, font=20, text='rotate right',
                                          bg=GRAY, fg='black', highlightcolor='#9966cc',
-                                         activebackground='#cc99ff', anchor='w', padx=20, command=lambda: self.check_left.deselect())
+                                         activebackground='#cc99ff', anchor='w', padx=20, command=self.deselect_left)
         self.check_right.grid(row=3, column=0, sticky='news')
 
         self.check_left = tk.Checkbutton(self.menu_frame, variable=self.__rotate_left, font=20, text='rotate left',
-                                          bg=GRAY, fg='black', highlightcolor='#9966cc',
-                                          activebackground='#cc99ff', anchor='w', padx=20, command=lambda: self.check_right.deselect())
+                                         bg=GRAY, fg='black', highlightcolor='#9966cc',
+                                         activebackground='#cc99ff', anchor='w', padx=20, command=self.deselect_right)
         self.check_left.grid(row=4, column=0, sticky='news')
 
         self.check_inverse_colours = tk.Checkbutton(self.menu_frame, variable=self.__invert_colours, font=20, text='invert colours',
-                                         bg=GRAY, fg='black', highlightcolor='#9966cc',
-                                         activebackground='#cc99ff', anchor='w', padx=20)
+                                                    bg=GRAY, fg='black', highlightcolor='#9966cc',
+                                                    activebackground='#cc99ff', anchor='w', padx=20,
+                                                    command=self.parameter_change_convertoin)
         self.check_inverse_colours.grid(row=5, column=0, sticky='news')
 
-        self.play_button = tk.Button(self.menu_frame, text='PLAY', font=20, bg=PURPLE, relief=tk.GROOVE,
-                                     highlightcolor=LILA, activebackground=SOMBRA_PURPLE, command=self.decide_source)
+        self.play_button = tk.Button(self.menu_frame, textvariable=self.__convert_button_text, font=20, bg=PURPLE,
+                                     relief=tk.GROOVE, highlightcolor=LILA, activebackground=SOMBRA_PURPLE,
+                                     command=self.decide_main_button_action)
         self.play_button.grid(row=6, column=0, sticky='news')
 
     def prepare_loading_bar(self):
@@ -265,6 +270,7 @@ class AsciiMovie(tk.Tk):
         self.__list_loaded.set(0)
         self.__video_pickle_path.set("")
         self.prepare_minature()
+        self.__convert_button_text.set('CONVERT')
 
     # Loads converted ASCII frames to a pickle file.
     # The 'amc' extension is used to force dedicated for ASCII Movie Converter program files to open.
@@ -291,31 +297,69 @@ class AsciiMovie(tk.Tk):
         path = askopenfilename(initialdir=os.getcwd(), title='Select saved frames',
                                filetypes=(('ASCII Movie Converter files', '.amc'),))
         with open(path, 'rb') as file:
-            self.__ascii_frames = rick.load(file)
-            self.__converted_movie_duration = rick.load(file)
-            self.__converted_movie_frame_count = rick.load(file)
-            self.__converted_movie_fps = rick.load(file)
-            self.__converted_movie_length = rick.load(file)
-            self.__converted_movie_height = rick.load(file)
-            self.__converted_movie_px_length = rick.load(file)
-            self.__converted_movie_px_height = rick.load(file)
+            try:
+                self.__ascii_frames = rick.load(file)
+                self.__converted_movie_duration = rick.load(file)
+                self.__converted_movie_frame_count = rick.load(file)
+                self.__converted_movie_fps = rick.load(file)
+                self.__converted_movie_length = rick.load(file)
+                self.__converted_movie_height = rick.load(file)
+                self.__converted_movie_px_length = rick.load(file)
+                self.__converted_movie_px_height = rick.load(file)
+            except EOFError:
+                messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+                return
+            except TypeError:
+                messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+                return
         self.__list_loaded.set(1)
         self.prepare_sandard_minature()
         self.__video_pickle_path.set(path)
         self.__video_path.set("")
         self.__video_name.set(self.__video_pickle_path.get().split('/')[-1])
         self.file_menu.entryconfig('Save (ctrl+S)', state='normal')
+        self.__convert_button_text.set('PLAY')
 
     # PLAYER ACTIONS
     # Decides whether the video is to be converted or can be played from loaded list.
-    def decide_source(self):
-        if self.__list_loaded.get() > 0:
+    def decide_main_button_action(self):
+        self.clear_loading_bar()
+        if self.__convert_button_text.get() == 'CONVERT':
+            self.force_cancel.set(0)
+            self.__convert_button_text.set('CANCEL')
+            self.convert_movie_from_file()
+        elif self.__convert_button_text.get() == 'PLAY':
             self.play_video()
-        else:
-            self.play_movie_from_file()
+        elif self.__convert_button_text.get() == 'CANCEL':
+            self.force_cancel.set(1)
+            self.__convert_button_text.set('CONVERT')
+            self.file_menu.entryconfig('Save (ctrl+S)', state='disabled')
+
+    def clear_menu_options(self):
+        self.check_left.deselect()
+        self.check_right.deselect()
+        self.check_loop.deselect()
+        self.check_inverse_colours.deselect()
+
+    def clear_loading_bar(self):
+        for fr in self.bar_parts:
+            fr.config(bg='black')
+
+    def parameter_change_convertoin(self, e=None):
+        self.force_cancel.set(1)
+        self.__convert_button_text.set('CONVERT')
+        self.after(1000, self.force_cancel.set, 0)
+
+    def deselect_left(self, e=None):
+        self.check_left.deselect()
+        self.parameter_change_convertoin()
+
+    def deselect_right(self, e=None):
+        self.check_right.deselect()
+        self.parameter_change_convertoin()
 
     # Prepares frames list with additional information such as duration, frame count etc.
-    def play_movie_from_file(self):
+    def convert_movie_from_file(self):
         rot_left = True if self.__rotate_left.get() > 0 else False
         rot_right = True if self.__rotate_right.get() > 0 else False
         is_inverted = True if self.__invert_colours.get() > 0 else False
@@ -332,10 +376,9 @@ class AsciiMovie(tk.Tk):
         self.__converted_movie_px_length = px_length
         self.__converted_movie_px_height = px_height
 
-        # Allow for saving the converted list
-        self.file_menu.entryconfig('Save (ctrl+S)', state='normal')
-
-        self.play_video()
+        if self.force_cancel.get() == 0:
+            self.__convert_button_text.set('PLAY')
+            self.file_menu.entryconfig('Save (ctrl+S)', state='normal')
 
     # Creates an AsciiMoviePlayer window
     def play_video(self):
@@ -395,6 +438,7 @@ class AsciiMoviePlayer(tk.Toplevel):
                                            bg=PURPLE,  highlightcolor=LILA, activebackground=SOMBRA_PURPLE,
                                            command=self.decide_action)
         self.play_pause_button.grid(row=2, column=0, sticky='news')
+        self.play_pause_button.grid_propagate(0)
 
         # FILLING LABEL
         self.empty_label = tk.Label(self.display_frame, bg='black')
@@ -404,6 +448,12 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.display = tk.Label(self.display_frame, bg='black', fg='white', textvariable=self.__display_text,
                                 justify='left', font=('Consolas', 10), anchor='center', width=self.__px_length)
         self.display.grid(row=0, column=0, columnspan=2, sticky='news')
+        self.display.grid_propagate(0)
+
+        # MOVIE BAR
+        self.movie_bar = tk.Scrollbar(self.display_frame, orient=tk.HORIZONTAL, jump=1, width=10)
+        self.movie_bar.grid(row=1, column=0, columnspan=2, sticky='news')
+        self.movie_bar.grid_propagate(0)
 
     def decide_action(self):
         if self.__button_text.get() == 'PLAY':
@@ -429,10 +479,10 @@ class AsciiMoviePlayer(tk.Toplevel):
             self.__current_frame.set(current)
             if self.__is_looped.get() == 1 and self.__current_frame.get() == self.__movie_length-1:
                 self.__current_frame.set(0)
-            # else:
-            #     self.__current_frame.set(0)
-            #     self.__is_paused.set(1)
-            #     self.__button_text.set('PLAY')
+        if self.__is_paused.get() == 0:
+            self.__current_frame.set(0)
+            self.__is_paused.set(1)
+            self.__button_text.set('PLAY')
 
     def update_label(self, gen):
         try:
@@ -440,6 +490,7 @@ class AsciiMoviePlayer(tk.Toplevel):
         except StopIteration:
             return
         self.__display_text.set(frame)
+        self.movie_bar.set(5, 10)
         self.display.after(self.__delay, self.update_label, gen)
 
 
