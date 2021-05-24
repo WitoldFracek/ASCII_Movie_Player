@@ -21,7 +21,7 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
     duration = frame_count / fps
     counter = 0
     success = 1
-    frames = [''] * frame_count
+    frames = []
     length = 0
     height = 0
     px_length = 0
