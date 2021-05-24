@@ -99,6 +99,7 @@ class AsciiMovie(tk.Tk):
         prepare_config()
         self.__config = get_config()
         self.geometry(f'{self.__config["length"]}x{self.__config["height"]}')
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.bind('<Control-o>', self.open_file)
         self.bind('<Control-s>', self.load_to_pickle)
         self.bind('<Control-l>', self.load_from_pickle)
@@ -240,6 +241,7 @@ class AsciiMovie(tk.Tk):
         self.check_right.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.check_inverse_colours.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.play_button.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.check_loop.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.clear_loading_bar()
         self.update()
 
@@ -326,18 +328,24 @@ class AsciiMovie(tk.Tk):
                                          activebackground=self.LIGHT_MAIN_COLOUR, selectcolor='black',
                                          anchor='w', padx=20, relief=tk.GROOVE)
         self.check_loop.grid(row=6, column=0, sticky='news')
+        if self.__config['is looped']:
+            self.check_loop.select()
 
         self.check_right = tk.Checkbutton(self.menu_frame, variable=self.__rotate_right, font=self.FONT, text='ROTATE RIGHT',
                                          bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                          anchor='w', padx=20, activebackground=self.LIGHT_MAIN_COLOUR,
                                          command=self.deselect_left, relief=tk.GROOVE)
         self.check_right.grid(row=2, column=0, sticky='news')
+        if self.__config['rotate right']:
+            self.check_right.select()
 
         self.check_left = tk.Checkbutton(self.menu_frame, variable=self.__rotate_left, font=self.FONT, text='ROTATE LEFT',
                                          bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                          anchor='w', padx=20, command=self.deselect_right, activebackground=self.LIGHT_MAIN_COLOUR,
                                          relief=tk.GROOVE)
         self.check_left.grid(row=3, column=0, sticky='news')
+        if self.__config['rotate left']:
+            self.check_left.select()
 
         self.check_inverse_colours = tk.Checkbutton(self.menu_frame, variable=self.__invert_colours, font=self.FONT,
                                                     text='INVERT COLOURS',
@@ -345,6 +353,8 @@ class AsciiMovie(tk.Tk):
                                                     anchor='w', padx=20, activebackground=self.LIGHT_MAIN_COLOUR,
                                                     command=self.parameter_change_convertoin, relief=tk.GROOVE)
         self.check_inverse_colours.grid(row=4, column=0, sticky='news')
+        if self.__config['invert colours']:
+            self.check_inverse_colours.select()
 
         self.play_button = tk.Button(self.menu_frame, textvariable=self.__convert_button_text, font=self.FONT,
                                      bg='black', fg='white',
@@ -357,6 +367,21 @@ class AsciiMovie(tk.Tk):
         self.bar_parts = [tk.Frame(self.loading_bar_frame, bg='black') for _ in range(LOADING_BAR_FRACTIONS)]
         for n in range(LOADING_BAR_FRACTIONS):
             self.bar_parts[n].grid(row=0, column=n, sticky='news')
+
+    def on_close(self):
+        if not messagebox.askokcancel('GUIT', "Do you want to quit?"):
+            return
+        self.__config['video path'] = self.__video_path.get()
+        self.__config['main colour'] = self.MAIN_COLOUR
+        self.__config['light colour'] = self.LIGHT_MAIN_COLOUR
+        self.__config['foreground colour'] = self.MAIN_FG
+        self.__config['is looped'] = True if self.__is_looped.get() == 1 else False
+        self.__config['rotate left'] = True if self.__rotate_left.get() == 1 else False
+        self.__config['rotate right'] = True if self.__rotate_right.get() == 1 else False
+        self.__config['invert colours'] = True if self.__invert_colours.get() == 1 else False
+        save_config(self.__config)
+        self.destroy()
+
 
     # FILE MANAGEMENT
     # Specify the path to an mp4 file.
@@ -527,10 +552,14 @@ class AsciiMoviePlayer(tk.Toplevel):
         tk.Toplevel.__init__(self, master, **kw)
         self.grab_set()
 
+        self.FONT = ('Weibei', 10)
+
         # --- Layout configuration -------------------------
         self.iconphoto(False, tk.PhotoImage(file=logo_path))
-        self.geometry(f'{length}x{height}')
+        # self.geometry(f'{length}x{height}')
+        self.geometry('800x1200')
         self.resizable(True, True)
+        self.grid_propagate(0)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.display_frame = tk.Frame(self, bg='black')
@@ -540,6 +569,7 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.display_frame.columnconfigure(0, weight=1)
         self.display_frame.columnconfigure(1, weight=4)
         self.display_frame.grid(row=0, column=0, sticky='news')
+        self.display_frame.grid_propagate(0)
 
         # --- Fields configuration ----------------------------
         self.__ascii_frames = frame_list
@@ -574,7 +604,7 @@ class AsciiMoviePlayer(tk.Toplevel):
 
         # DISPLAY LABEL
         self.display = tk.Label(self.display_frame, bg='black', fg='white', textvariable=self.__display_text,
-                                justify='left', font=('Consolas', 10), anchor='center', width=self.__px_length)
+                                justify='left', font=('Consolas', 8), anchor='center', width=self.__px_length)
         self.display.grid(row=0, column=0, columnspan=2, sticky='news')
         self.display.grid_propagate(0)
 
