@@ -1,14 +1,11 @@
 from PIL import Image, ImageTk
 import cv2
-import numpy as np
-from time import sleep
 import tkinter as tk
 from tkinter import font as tkFont
-import json
-import random
-from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
+from tkinter import messagebox
+import json
 import pickle as rick
 import os
 import frame_converter as fc
@@ -17,7 +14,7 @@ import frame_converter as fc
 
 #constants
 LOADING_BAR_FRACTIONS = 100
-ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '⣿⣿']
+ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '■■']
 CONFIG = '.\\ascii_movie_config.json'
 
 
@@ -109,7 +106,7 @@ class AsciiMovie(tk.Tk):
             'YELLOW': ('#ffcc00', '#ffcc33', 'black'),
             'LIME': ('#99ff00', '#ccff66', 'black'),
             'GREEN': ('#009900', '#339900', 'black'),
-            'CYAN': ('#OOFFFF', '#COCOCO', 'black'),
+            'CYAN': ('#00FFFF', '#C0C0C0', 'black'),
             'BLUE': ('#0033cc', '#0066cc', 'white'),
             'PURPLE': ('#a350f9', '#cc99ff', 'black'),
             'VIOLET': ('#a350f9', '#cc99ff', 'black'),
@@ -171,7 +168,7 @@ class AsciiMovie(tk.Tk):
             self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
 
     def prepare_main_layout(self):
-        self.menu_frame = tk.Frame(self, bg='black')
+        self.menu_frame = tk.Frame(self, bg='black', padx=5)
         self.menu_frame.grid(row=0, column=0, sticky='news')
         self.menu_frame.columnconfigure(0, weight=1)
         self.menu_frame.rowconfigure(0, weight=2)
@@ -213,12 +210,9 @@ class AsciiMovie(tk.Tk):
 
     def prepare_colour_cascade(self, parent_menu):
         self.colour_menu = tk.Menu(parent_menu)
-        counter = 0
         for key in self.__colours:
             colour = self.__colours[key]
             self.colour_menu.add_command(label=key.lower(), command=lambda x=colour: self.set_colour_theme(x))
-            print(colour)
-            counter += 1
         return self.colour_menu
 
     def set_colour_theme(self, colour):
@@ -233,7 +227,12 @@ class AsciiMovie(tk.Tk):
         self.update_colours()
 
     def update_colours(self):
-        pass
+        self.pixelate_option_menu.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.check_left.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.check_right.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.check_inverse_colours.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.play_button.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.update()
 
     def prepare_minature(self):
         if self.__video_path.get() == "":
@@ -311,8 +310,9 @@ class AsciiMovie(tk.Tk):
         self.pixelate_label.grid(row=0, column=0, sticky='news')
 
         self.check_loop = tk.Checkbutton(self.menu_frame, variable=self.__is_looped, font=self.FONT, text='LOOP',
-                                         bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
-                                         activebackground=self.LIGHT_MAIN_COLOUR, anchor='w', padx=20, relief=tk.GROOVE)
+                                         bg='black', fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
+                                         activebackground=self.LIGHT_MAIN_COLOUR, selectcolor='black',
+                                         anchor='w', padx=20, relief=tk.GROOVE)
         self.check_loop.grid(row=2, column=0, sticky='news')
 
         self.check_right = tk.Checkbutton(self.menu_frame, variable=self.__rotate_right, font=self.FONT, text='ROTATE RIGHT',
@@ -390,6 +390,8 @@ class AsciiMovie(tk.Tk):
     def load_from_pickle(self, e=None):
         path = askopenfilename(initialdir=os.getcwd(), title='Select saved frames',
                                filetypes=(('ASCII Movie Converter files', '.amc'),))
+        if path == "":
+            return
         with open(path, 'rb') as file:
             try:
                 self.__ascii_frames = rick.load(file)
