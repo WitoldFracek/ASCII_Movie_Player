@@ -36,8 +36,8 @@ def prepare_config():
 
 
 def create_config():
-    conf = {'height': 400,
-            'length': 400,
+    conf = {'height': 500,
+            'length': 1000,
             "video path": "",
             "cover photo": ".\\ASCII_movies.png",
             "logo": ".\\ASCII_logo.png"}
@@ -119,12 +119,13 @@ class AsciiMovie(tk.Tk):
 
         # --- configuration ------------------------------
         self.title('ASCII movie player')
+        prepare_config()
         self.__config = get_config()
         self.geometry(f'{self.__config["length"]}x{self.__config["height"]}')
         self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
         self.bind('<Control-o>', self.open_file)
         self.bind('<Control-s>', lambda e: save_list(self.__ascii_frames))
-        self.bind('<Control-l>', lambda e: self.load_to_pickle)
+        self.bind('<Control-l>', lambda e: self.load_from_pickle)
 
         # --- variables ----------------------------------
         self.__video_path = tk.StringVar()
@@ -359,8 +360,6 @@ class AsciiMovie(tk.Tk):
                                self.__converted_movie_px_height,
                                self.__is_looped,
                                self.__config['logo'])
-        print(self.__converted_movie_lenght)
-        print(self.__converted_movie_height)
         apk.grab_set()
         for fr in self.bar_parts:
             fr.config(bg='black')
@@ -371,7 +370,7 @@ class AsciiMoviePlayer(tk.Toplevel):
         tk.Toplevel.__init__(self, master, **kw)
         self.grab_set()
         self.iconphoto(False, tk.PhotoImage(file=logo_path))
-        self.geometry(f'{length}x{height + 30}')
+        self.geometry(f'{px_l*20}x{px_h*20 + 30}')
         self.resizable(True, True)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -392,6 +391,10 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.__frame_count = frame_count
         self.__display_text = tk.StringVar(self, "")
         self.__button_text = tk.StringVar(self, "PLAY")
+        self.__is_looped = tk.IntVar(self, is_looped.get())
+        self.__current_frame = tk.IntVar(self, 0)
+        self.__movie_length = len(frame_list)
+        self.__delay = int(self.__duration * 1000 / self.__frame_count)
 
         self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=tk.GROOVE,
                                            bg=PURPLE,  highlightcolor=LILA, activebackground=SOMBRA_PURPLE,
@@ -407,10 +410,23 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.display.grid(row=0, column=0, columnspan=2, sticky='news')
 
     def play_video(self):
-        for fr in self.__ascii_frames:
-            self.__display_text.set(fr)
-            self.update_idletasks()
-            sleep(self.__duration / self.__frame_count)
+        gen = iter(self.frame_generator())
+        self.update_label(gen)
+
+    def frame_generator(self):
+        while self.__current_frame.get() < self.__movie_length:
+            current = self.__current_frame.get()
+            yield self.__ascii_frames[current]
+            current += 1
+            self.__current_frame.set(current)
+
+    def update_label(self, gen):
+        try:
+            frame = next(gen)
+        except StopIteration:
+            return
+        self.__display_text.set(frame)
+        self.display.after(self.__delay, self.update_label, gen)
 
 
 

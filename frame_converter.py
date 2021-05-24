@@ -4,7 +4,7 @@ import numpy as np
 import os
 import time
 
-ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', 'WW']
+ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '■■']
 SOMBRA_PURPLE = '#a350f9'
 
 
@@ -21,7 +21,7 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
     duration = frame_count / fps
     counter = 0
     success = 1
-    frames = []
+    frames = [''] * frame_count
     length = 0
     height = 0
     px_length = 0
