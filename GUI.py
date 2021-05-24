@@ -1,6 +1,7 @@
 from PIL import Image, ImageTk
 import cv2
 import tkinter as tk
+import tkinter.ttk
 from tkinter import font as tkFont
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
@@ -10,14 +11,13 @@ import pickle as rick
 import os
 import frame_converter as fc
 
-# D:/HDD/programowanie_python/DiscordBots/PicturesBot/bad_apple/bad_apple.mp4
-
-#constants
+# constants
 LOADING_BAR_FRACTIONS = 100
 ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '■■']
 CONFIG = '.\\ascii_movie_config.json'
 
 
+# Prepares the basic json config
 def prepare_config():
     if os.path.exists(CONFIG):
         conf: dict = get_config()
@@ -34,6 +34,7 @@ def prepare_config():
         create_config()
 
 
+# Creates the basick json config
 def create_config():
     conf = {
             'height': 500,
@@ -56,17 +57,20 @@ def create_config():
         json.dump(conf, file)
 
 
+# Returns a dict of stored in ascii_movue_config.json configurations
 def get_config():
     with open(CONFIG) as file:
         conf = json.load(file)
     return conf
 
 
+# Saves dict as a new configuration
 def save_config(config):
     with open(CONFIG, 'w') as file:
         json.dump(config, file)
 
 
+# Returns a frame from a video that is used as minature
 def get_quarter_frame(path: str):
     if not os.path.exists(path):
         return None
@@ -76,8 +80,12 @@ def get_quarter_frame(path: str):
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     index = max(2, int(frame_count/4))
     video.set(cv2.CAP_PROP_POS_FRAMES, index - 1)
-    success, image = video.read()
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    try:
+        success, image = video.read()
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    except cv2.error:
+        messagebox.showerror('FILE CORRUPTED', 'Selected file is corrupted or cannot be read')
+        return
     im_pil = Image.fromarray(image)
     return im_pil.convert('L')
 
@@ -232,6 +240,7 @@ class AsciiMovie(tk.Tk):
         self.check_right.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.check_inverse_colours.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.play_button.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.clear_loading_bar()
         self.update()
 
     def prepare_minature(self):
@@ -275,6 +284,8 @@ class AsciiMovie(tk.Tk):
             return
         image = get_quarter_frame(self.__config['video path'])
         if image is None:
+            self.__video_path.set("")
+            self.__video_name.set("")
             self.prepare_sandard_minature()
             return
         image = image.resize((self.minature_frame.winfo_width(), self.minature_frame.winfo_height()), Image.NEAREST)
@@ -299,8 +310,9 @@ class AsciiMovie(tk.Tk):
         fnt = tkFont.Font(family='Consolas', size=14)
         self.pixelate_option_menu = tk.OptionMenu(self.pixelate_frame, self.__pixelate_choice, *choices,
                                                   command=self.parameter_change_convertoin)
+
         self.pixelate_option_menu.configure(font=self.FONT, bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
-                                            activebackground=self.LIGHT_MAIN_COLOUR, relief=tk.GROOVE)
+                                            relief=tk.GROOVE)
         menu = self.pixelate_frame.nametowidget(self.pixelate_option_menu.menuname)
         menu.config(font=fnt, bg='white', relief=tk.GROOVE)
         self.pixelate_option_menu['menu'].config(fg='black')
@@ -313,33 +325,33 @@ class AsciiMovie(tk.Tk):
                                          bg='black', fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                          activebackground=self.LIGHT_MAIN_COLOUR, selectcolor='black',
                                          anchor='w', padx=20, relief=tk.GROOVE)
-        self.check_loop.grid(row=2, column=0, sticky='news')
+        self.check_loop.grid(row=6, column=0, sticky='news')
 
         self.check_right = tk.Checkbutton(self.menu_frame, variable=self.__rotate_right, font=self.FONT, text='ROTATE RIGHT',
                                          bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
-                                         activebackground=self.LIGHT_MAIN_COLOUR, anchor='w', padx=20,
+                                         anchor='w', padx=20, activebackground=self.LIGHT_MAIN_COLOUR,
                                          command=self.deselect_left, relief=tk.GROOVE)
-        self.check_right.grid(row=3, column=0, sticky='news')
+        self.check_right.grid(row=2, column=0, sticky='news')
 
         self.check_left = tk.Checkbutton(self.menu_frame, variable=self.__rotate_left, font=self.FONT, text='ROTATE LEFT',
                                          bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
-                                         activebackground=self.LIGHT_MAIN_COLOUR, anchor='w', padx=20, command=self.deselect_right,
+                                         anchor='w', padx=20, command=self.deselect_right, activebackground=self.LIGHT_MAIN_COLOUR,
                                          relief=tk.GROOVE)
-        self.check_left.grid(row=4, column=0, sticky='news')
+        self.check_left.grid(row=3, column=0, sticky='news')
 
         self.check_inverse_colours = tk.Checkbutton(self.menu_frame, variable=self.__invert_colours, font=self.FONT,
                                                     text='INVERT COLOURS',
                                                     bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
-                                                    activebackground=self.LIGHT_MAIN_COLOUR, anchor='w', padx=20,
+                                                    anchor='w', padx=20, activebackground=self.LIGHT_MAIN_COLOUR,
                                                     command=self.parameter_change_convertoin, relief=tk.GROOVE)
-        self.check_inverse_colours.grid(row=5, column=0, sticky='news')
+        self.check_inverse_colours.grid(row=4, column=0, sticky='news')
 
         self.play_button = tk.Button(self.menu_frame, textvariable=self.__convert_button_text, font=self.FONT,
                                      bg='black', fg='white',
                                      relief=tk.GROOVE, highlightcolor=self.LIGHT_MAIN_COLOUR,
                                      activebackground=self.LIGHT_MAIN_COLOUR,
                                      command=self.decide_main_button_action)
-        self.play_button.grid(row=6, column=0, sticky='news')
+        self.play_button.grid(row=5, column=0, sticky='news')
 
     def prepare_loading_bar(self):
         self.bar_parts = [tk.Frame(self.loading_bar_frame, bg='black') for _ in range(LOADING_BAR_FRACTIONS)]
@@ -363,6 +375,10 @@ class AsciiMovie(tk.Tk):
         self.__video_pickle_path.set("")
         self.prepare_minature()
         self.__convert_button_text.set('CONVERT')
+        self.check_right.config(state='active')
+        self.check_left.config(state='active')
+        self.check_inverse_colours.config(state='active')
+        self.pixelate_option_menu.config(state='active')
 
     # Loads converted ASCII frames to a pickle file.
     # The 'amc' extension is used to force dedicated for ASCII Movie Converter program files to open.
@@ -415,12 +431,19 @@ class AsciiMovie(tk.Tk):
         self.__video_name.set(self.__video_pickle_path.get().split('/')[-1])
         self.file_menu.entryconfig('Save (ctrl+S)', state='normal')
         self.__convert_button_text.set('PLAY')
+        self.check_right.config(state='disabled')
+        self.check_left.config(state='disabled')
+        self.check_inverse_colours.config(state='disabled')
+        self.pixelate_option_menu.config(state='disabled')
 
     # PLAYER ACTIONS
     # Decides whether the video is to be converted or can be played from loaded list.
     def decide_main_button_action(self):
         self.clear_loading_bar()
         if self.__convert_button_text.get() == 'CONVERT':
+            if self.__video_path.get() == "":
+                messagebox.showerror('ERROR', 'No file selected.')
+                return
             self.force_cancel.set(0)
             self.__convert_button_text.set('CANCEL')
             self.convert_movie_from_file()
@@ -436,6 +459,7 @@ class AsciiMovie(tk.Tk):
         self.check_right.deselect()
         self.check_loop.deselect()
         self.check_inverse_colours.deselect()
+        self.__pixelate_choice.set('20')
 
     def clear_loading_bar(self):
         for fr in self.bar_parts:
@@ -604,6 +628,21 @@ class AsciiMoviePlayer(tk.Toplevel):
         passed = self.__current_frame.get()/self.__frame_count
         self.movie_bar.set(passed, min(1, passed+self.__delta))
         self.display.after(self.__delay, self.update_label, gen)
+
+
+def create_style(main_colour, light_colour):
+    style = tkinter.ttk.Style()
+    style.element_create("My.Horizontal.Scrollbar.trough", "from", "default")
+    style.layout("My.Horizontal.TScrollbar",
+                 [('My.Horizontal.Scrollbar.trough',
+                   {'children':
+                    [('Horizontal.Scrollbar.leftarrow', {'side': 'left', 'sticky': ''}),
+                     ('Horizontal.Scrollbar.rightarrow', {'side': 'right', 'sticky': ''}),
+                     ('Horizontal.Scrollbar.thumb', {'unit': '1', 'children': [('Horizontal.Scrollbar.grip', {'sticky': ''})],
+                      'sticky': 'nswe'})], 'sticky': 'we'})])
+    style.configure("My.Horizontal.TScrollbar", *style.configure("Horizontal.TScrollbar"))
+    style.configure("My.Horizontal.TScrollbar", troughcolor='black', activebackground=light_colour, bg=main_colour)
+    return style
 
 
 
