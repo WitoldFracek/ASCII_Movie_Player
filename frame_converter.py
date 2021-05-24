@@ -8,7 +8,7 @@ ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '■■']
 SOMBRA_PURPLE = '#a350f9'
 
 
-def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, parent):
+def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, parent, colour):
     if not os.path.exists(path):
         return
     if not path.endswith('.mp4'):
@@ -42,10 +42,10 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
             if counter % int(frame_count/len(parent.bar_parts)) if int(frame_count/len(parent.bar_parts)) != 0 else 1 == 0:
                 for n in range(min(lb, len(parent.bar_parts))):
                     parent.update()
-                    parent.bar_parts[n].config(bg=SOMBRA_PURPLE)
+                    parent.bar_parts[n].config(bg=colour)
     for fr in parent.bar_parts:
         parent.update()
-        fr.config(bg=SOMBRA_PURPLE)
+        fr.config(bg=colour)
     return frames, duration, frame_count, fps, length, height, px_length, px_height
 
 
