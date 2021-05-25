@@ -33,7 +33,7 @@ def convert(path: str, pixel_size, rotate_right, rotate_left, is_inversed, paren
         success, image = video.read()
         if success:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            image_pil = Image.fromarray(image)
+            image_pil = Image.fromarray(image).resize((1280, 720), Image.NEAREST)
             length, height = image_pil.size[0], image_pil.size[1]
             pixelated, px_length, px_height = pixelate(image_pil, pixel_size, rotate_left, rotate_right, is_inversed)
             frames.append(pixelated)

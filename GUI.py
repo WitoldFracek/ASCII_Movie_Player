@@ -15,6 +15,8 @@ import frame_converter as fc
 LOADING_BAR_FRACTIONS = 100
 ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '■■']
 CONFIG = '.\\ascii_movie_config.json'
+GRAFITE = '#3A3A3A'
+RELIEF = tk.FLAT
 
 
 # Prepares the basic json config
@@ -83,6 +85,10 @@ def get_quarter_frame(path: str):
     try:
         success, image = video.read()
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(image)
+        if image_pil.size[0] > 1300 or image_pil.size[1] > 730:
+            messagebox.showerror('ERROR', 'The resolution of the selected video is too high.')
+            return
     except cv2.error:
         messagebox.showerror('FILE CORRUPTED', 'Selected file is corrupted or cannot be read')
         return
@@ -240,7 +246,7 @@ class AsciiMovie(tk.Tk):
         self.check_left.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.check_right.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.check_inverse_colours.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
-        self.play_button.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
+        self.play_button.config(bg=self.MAIN_COLOUR, fg=self.MAIN_FG, highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.check_loop.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.clear_loading_bar()
         self.update()
@@ -294,14 +300,14 @@ class AsciiMovie(tk.Tk):
         image2 = ImageTk.PhotoImage(image)
         self.minature_label = tk.Label(self.minature_frame, image=image2, bg='black')
         self.minature_label.im = image2
-        self.minature_label.grid(row=0, column=0, sticky='news')
+        self.minature_label.grid(row=0, column=0, sticky='news', padx=3, pady=3)
 
     def prepare_main_manu(self):
         self.movie_name_label = tk.Label(self.menu_frame, textvariable=self.__video_name, font=self.FONT,
                                          bg='black', fg='white')
-        self.movie_name_label.grid(row=0, column=0, sticky='news')
+        self.movie_name_label.grid(row=0, column=0, sticky='news', padx=3, pady=3)
 
-        self.pixelate_frame = tk.Frame(self.menu_frame, bg='white')
+        self.pixelate_frame = tk.Frame(self.menu_frame, bg=GRAFITE)
         self.pixelate_frame.grid(row=1, column=0, sticky='news')
         self.pixelate_frame.grid_propagate(0)
         self.pixelate_frame.rowconfigure(0, weight=1)
@@ -313,63 +319,65 @@ class AsciiMovie(tk.Tk):
         self.pixelate_option_menu = tk.OptionMenu(self.pixelate_frame, self.__pixelate_choice, *choices,
                                                   command=self.parameter_change_convertoin)
 
-        self.pixelate_option_menu.configure(font=self.FONT, bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
-                                            relief=tk.GROOVE)
+        self.pixelate_option_menu.configure(font=self.FONT, bg=GRAFITE, fg='white',
+                                            highlightcolor='white', activebackground=self.LIGHT_MAIN_COLOUR,
+                                            relief=RELIEF)
         menu = self.pixelate_frame.nametowidget(self.pixelate_option_menu.menuname)
-        menu.config(font=fnt, bg='white', relief=tk.GROOVE)
-        self.pixelate_option_menu['menu'].config(fg='black')
+        menu.config(font=fnt, bg=GRAFITE, relief=RELIEF)
+        self.pixelate_option_menu['menu'].config(fg='white')
         self.pixelate_option_menu.grid(row=0, column=1, sticky='news')
 
-        self.pixelate_label = tk.Label(self.pixelate_frame, text='PIXELATE', font=self.FONT, bg='white', fg='black')
-        self.pixelate_label.grid(row=0, column=0, sticky='news')
+        self.pixelate_label = tk.Label(self.pixelate_frame, text='PIXELATE', font=self.FONT, bg=GRAFITE, fg='white')
+        self.pixelate_label.grid(row=0, column=0, sticky='news', padx=5, pady=5)
 
         self.check_loop = tk.Checkbutton(self.menu_frame, variable=self.__is_looped, font=self.FONT, text='LOOP',
-                                         bg='black', fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
+                                         bg=GRAFITE, fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                          activebackground=self.LIGHT_MAIN_COLOUR, selectcolor='black',
-                                         anchor='w', padx=20, relief=tk.GROOVE)
-        self.check_loop.grid(row=6, column=0, sticky='news')
+                                         anchor='w', padx=20, relief=RELIEF)
+        self.check_loop.grid(row=6, column=0, sticky='news', padx=3, pady=3)
         if self.__config['is looped']:
             self.check_loop.select()
 
         self.check_right = tk.Checkbutton(self.menu_frame, variable=self.__rotate_right, font=self.FONT, text='ROTATE RIGHT',
-                                         bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
+                                         bg=GRAFITE, fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                          anchor='w', padx=20, activebackground=self.LIGHT_MAIN_COLOUR,
-                                         command=self.deselect_left, relief=tk.GROOVE)
-        self.check_right.grid(row=2, column=0, sticky='news')
+                                         command=self.deselect_left, relief=RELIEF, selectcolor='black')
+        self.check_right.grid(row=2, column=0, sticky='news', padx=3, pady=3)
         if self.__config['rotate right']:
             self.check_right.select()
 
         self.check_left = tk.Checkbutton(self.menu_frame, variable=self.__rotate_left, font=self.FONT, text='ROTATE LEFT',
-                                         bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
+                                         bg=GRAFITE, fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                          anchor='w', padx=20, command=self.deselect_right, activebackground=self.LIGHT_MAIN_COLOUR,
-                                         relief=tk.GROOVE)
-        self.check_left.grid(row=3, column=0, sticky='news')
+                                         relief=RELIEF, selectcolor='black')
+        self.check_left.grid(row=3, column=0, sticky='news', padx=3, pady=3)
         if self.__config['rotate left']:
             self.check_left.select()
 
         self.check_inverse_colours = tk.Checkbutton(self.menu_frame, variable=self.__invert_colours, font=self.FONT,
                                                     text='INVERT COLOURS',
-                                                    bg='white', fg='black', highlightcolor=self.LIGHT_MAIN_COLOUR,
+                                                    bg=GRAFITE, fg='white', highlightcolor=self.LIGHT_MAIN_COLOUR,
                                                     anchor='w', padx=20, activebackground=self.LIGHT_MAIN_COLOUR,
-                                                    command=self.parameter_change_convertoin, relief=tk.GROOVE)
-        self.check_inverse_colours.grid(row=4, column=0, sticky='news')
+                                                    command=self.parameter_change_convertoin, relief=RELIEF,
+                                                    selectcolor='black')
+        self.check_inverse_colours.grid(row=4, column=0, sticky='news', padx=3, pady=3)
         if self.__config['invert colours']:
             self.check_inverse_colours.select()
 
         self.play_button = tk.Button(self.menu_frame, textvariable=self.__convert_button_text, font=self.FONT,
-                                     bg='black', fg='white',
-                                     relief=tk.GROOVE, highlightcolor=self.LIGHT_MAIN_COLOUR,
+                                     bg=self.MAIN_COLOUR, fg='white',
+                                     relief=RELIEF, highlightcolor=self.LIGHT_MAIN_COLOUR,
                                      activebackground=self.LIGHT_MAIN_COLOUR,
                                      command=self.decide_main_button_action)
-        self.play_button.grid(row=5, column=0, sticky='news')
+        self.play_button.grid(row=5, column=0, sticky='news', padx=3, pady=3)
 
     def prepare_loading_bar(self):
         self.bar_parts = [tk.Frame(self.loading_bar_frame, bg='black') for _ in range(LOADING_BAR_FRACTIONS)]
         for n in range(LOADING_BAR_FRACTIONS):
-            self.bar_parts[n].grid(row=0, column=n, sticky='news')
+            self.bar_parts[n].grid(row=0, column=n, sticky='news', pady=3)
 
     def on_close(self):
-        if not messagebox.askokcancel('GUIT', "Do you want to quit?"):
+        if not messagebox.askyesno('GUIT', "Do you want to quit?"):
             return
         self.save_current_config()
         self.destroy()
@@ -550,6 +558,9 @@ class AsciiMovie(tk.Tk):
 
 
 class AsciiMoviePlayer(tk.Toplevel):
+
+    RELIEF = tk.GROOVE
+
     def __init__(self, master: AsciiMovie, frame_list, duration, frame_count, length, height, px_l, px_h, is_looped,
                  logo_path, main_colour, light_colour, fg_colour, **kw):
         tk.Toplevel.__init__(self, master, **kw)
@@ -593,7 +604,7 @@ class AsciiMoviePlayer(tk.Toplevel):
 
         # --- GUI elements configuration -------------------------------------
         # PLAY/PAUSE BUTTON
-        self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=tk.GROOVE,
+        self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=RELIEF,
                                            bg=main_colour,  highlightcolor=light_colour,
                                            activebackground=light_colour,
                                            command=self.decide_action, fg=fg_colour)
