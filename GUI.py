@@ -169,7 +169,7 @@ class AsciiMovie(tk.Tk):
     def set_icon(self):
         if not os.path.exists(self.__config['logo']):
             if not os.path.exists(self.__config['error']):
-                messagebox.showerror('CONFIG FILE DAMAGED', 'Configuration file is damaged')
+                messagebox.showerror('CONFIG FILE DAMAGED', 'Configuration file is damaged or some data is missing.')
                 return
             else:
                 self.iconphoto(False, tk.PhotoImage(file=self.__config['error']))
@@ -268,7 +268,7 @@ class AsciiMovie(tk.Tk):
     def prepare_error_minature(self):
         self.minature_frame.update()
         if not os.path.exists(self.__config['error']):
-            messagebox.showerror('DAMAGED CONFIGURATION FILE', 'Configuration file is damaged.')
+            messagebox.showerror('DAMAGED CONFIGURATION FILE', 'Configuration file is damaged or some data is missing.')
             return
         else:
             image_png = Image.open(self.__config['error']).resize((self.minature_frame.winfo_width(),
@@ -371,6 +371,10 @@ class AsciiMovie(tk.Tk):
     def on_close(self):
         if not messagebox.askokcancel('GUIT', "Do you want to quit?"):
             return
+        self.save_current_config()
+        self.destroy()
+
+    def save_current_config(self):
         self.__config['video path'] = self.__video_path.get()
         self.__config['main colour'] = self.MAIN_COLOUR
         self.__config['light colour'] = self.LIGHT_MAIN_COLOUR
@@ -380,8 +384,6 @@ class AsciiMovie(tk.Tk):
         self.__config['rotate right'] = True if self.__rotate_right.get() == 1 else False
         self.__config['invert colours'] = True if self.__invert_colours.get() == 1 else False
         save_config(self.__config)
-        self.destroy()
-
 
     # FILE MANAGEMENT
     # Specify the path to an mp4 file.
@@ -508,6 +510,7 @@ class AsciiMovie(tk.Tk):
         rot_left = True if self.__rotate_left.get() > 0 else False
         rot_right = True if self.__rotate_right.get() > 0 else False
         is_inverted = True if self.__invert_colours.get() > 0 else False
+        self.save_current_config()
         ret, duration, frame_count, fps, length, height, px_length, px_height = fc.convert(self.__video_path.get(),
                                                                                            int(self.__pixelate_choice.get()),
                                                                                            rot_right, rot_left,
