@@ -443,7 +443,7 @@ class AsciiMovie(tk.Tk):
             self.check_inverse_colours.select()
 
         self.play_button = tk.Button(self.menu_frame, textvariable=self.__convert_button_text, font=self.FONT,
-                                     bg=self.MAIN_COLOUR, fg='white',
+                                     bg=self.MAIN_COLOUR, fg=self.MAIN_FG,
                                      relief=RELIEF, highlightcolor=self.LIGHT_MAIN_COLOUR,
                                      activebackground=self.LIGHT_MAIN_COLOUR,
                                      command=self.decide_main_button_action)
@@ -533,23 +533,28 @@ class AsciiMovie(tk.Tk):
                                filetypes=(('ASCII Movie Converter files', '.amc'),))
         if path == "":
             return
-        with zip.ZipFile(path) as myzip:
-            with myzip.open('frame data.pkl', 'r') as file:
-                try:
-                    self.__ascii_frames = rick.load(file)
-                    self.__converted_movie_duration = rick.load(file)
-                    self.__converted_movie_frame_count = rick.load(file)
-                    self.__converted_movie_fps = rick.load(file)
-                    self.__converted_movie_length = rick.load(file)
-                    self.__converted_movie_height = rick.load(file)
-                    self.__converted_movie_px_length = rick.load(file)
-                    self.__converted_movie_px_height = rick.load(file)
-                except EOFError:
-                    messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
-                    return
-                except TypeError:
-                    messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
-                    return
+        try:
+            with zip.ZipFile(path) as myzip:
+                with myzip.open('frame data.pkl', 'r') as file:
+                    try:
+                        self.__ascii_frames = rick.load(file)
+                        self.__converted_movie_duration = rick.load(file)
+                        self.__converted_movie_frame_count = rick.load(file)
+                        self.__converted_movie_fps = rick.load(file)
+                        self.__converted_movie_length = rick.load(file)
+                        self.__converted_movie_height = rick.load(file)
+                        self.__converted_movie_px_length = rick.load(file)
+                        self.__converted_movie_px_height = rick.load(file)
+                    except EOFError:
+                        messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+                        return
+                    except TypeError:
+                        messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+                        return
+        except zip.BadZipFile:
+            messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+            return
+
         self.__list_loaded.set(1)
         self.prepare_sandard_minature()
         self.__video_pickle_path.set(path)
@@ -724,13 +729,15 @@ class AsciiMoviePlayer(tk.Toplevel):
 
     def push_forward(self, e=None):
         self.pause_video()
+        self.after(1000, lambda: None)
         self.__current_frame.set(min(self.__frame_count, self.__current_frame.get() + AsciiMoviePlayer.MOVE))
         self.play_video()
         self.__button_text.set('PAUSE')
 
     def push_backward(self, e=None):
         self.pause_video()
-        self.__current_frame.set(min(self.__frame_count, self.__current_frame.get() - AsciiMoviePlayer.MOVE))
+        self.after(1000, lambda: None)
+        self.__current_frame.set(max(0, self.__current_frame.get() - AsciiMoviePlayer.MOVE))
         self.play_video()
         self.__button_text.set('PAUSE')
 
