@@ -454,7 +454,7 @@ class AsciiMovie(tk.Tk):
             self.bar_parts[n].grid(row=0, column=n, sticky='news', pady=3)
 
     def on_close(self):
-        if not messagebox.askyesno('GUIT', "Do you want to quit?"):
+        if not messagebox.askyesno('QUIT', "Do you want to quit?"):
             return
         self.save_current_config()
         self.destroy()
