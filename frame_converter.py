@@ -39,13 +39,13 @@ class FrameConverter:
         px_height = 0
         while success:
             if self.__parent.force_cancel.get() == 1:
-                return [], 0, 0, 0, 0, 0, 0, 0
+                return [], 0, 0, 0, 0, 0
             success, image = video.read()
             if success:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 image_pil = Image.fromarray(image).resize((self.__height, self.__width), Image.NEAREST)
                 length, height = image_pil.size[0], image_pil.size[1]
-                pixelated, px_length, px_height = self.pixelate(image_pil)
+                pixelated = self.pixelate(image_pil)
                 frames.append(pixelated)
                 counter += 1
                 lb = int(counter * len(self.__parent.bar_parts) / frame_count)
@@ -56,7 +56,7 @@ class FrameConverter:
         for fr in self.__parent.bar_parts:
             self.__parent.update()
             fr.config(bg=self.__colour.get())
-        return frames, duration, frame_count, fps, length, height, px_length, px_height
+        return frames, duration, frame_count, fps, length, height
 
     def pixelate(self, image):
         image = image.resize((image.size[0] // self.__pixel_size, image.size[1] // self.__pixel_size), Image.NEAREST)
@@ -75,5 +75,5 @@ class FrameConverter:
             for j in range(height):
                 out += ASCII[ar[i][j] // 25]
             out += '\n'
-        return out, length, height
+        return out
 

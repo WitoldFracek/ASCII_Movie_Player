@@ -145,11 +145,10 @@ class AsciiMovie(tk.Tk):
 
 
         # --- variables ----------------------------------
-        self.__video_path = tk.StringVar()
-        self.__video_path.set(self.__config['video path'])
+        self.__video_path = tk.StringVar(self, self.__config['video path'])
         self.__video_name = tk.StringVar()
-        self.__video_name.set(self.__video_path.get().split('/')[-1])
-        self.__video_pickle_path = tk.StringVar(self, "")
+        self.set_movie_name(self.__video_path.get())
+        self.__video_archive_path = tk.StringVar(self, "")
         self.__is_looped = tk.IntVar(self, 0)
         self.__rotate_right = tk.IntVar(self, 0)
         self.__rotate_left = tk.IntVar(self, 0)
@@ -473,10 +472,19 @@ class AsciiMovie(tk.Tk):
         self.__config['res y'] = self.RES_Y
         save_config(self.__config)
 
+    def set_movie_name(self, path: str):
+        name = path.split('/')[-1]
+        if len(name) > 25:
+            self.__video_name.set(name[:-4][:25] + '[...].mp4')
+        else:
+            self.__video_name.set(name)
+
+
     def set_main_buttons_state(self, state):
         self.check_right.config(state=state)
         self.check_left.config(state=state)
         self.check_inverse_colours.config(state=state)
+        self.pixelate_option_menu.config(state=state)
         self.set_tool_bar_state(state)
 
     def set_tool_bar_state(self, state):
@@ -494,11 +502,11 @@ class AsciiMovie(tk.Tk):
         self.__ascii_frames = []
         self.file_menu.entryconfig('Save (ctrl+S)', state='disabled')
         self.__video_path.set(filename)
-        self.__video_name.set(self.__video_path.get().split('/')[-1])
+        self.set_movie_name(self.__video_path.get())
         self.__config['video path'] = filename
         save_config(self.__config)
         self.__list_loaded.set(0)
-        self.__video_pickle_path.set("")
+        self.__video_archive_path.set("")
         self.prepare_minature()
         self.__convert_button_text.set('CONVERT')
         self.set_main_buttons_state('active')
@@ -557,13 +565,14 @@ class AsciiMovie(tk.Tk):
 
         self.__list_loaded.set(1)
         self.prepare_sandard_minature()
-        self.__video_pickle_path.set(path)
+        self.__video_archive_path.set(path)
         self.__video_path.set("")
-        self.__video_name.set(self.__video_pickle_path.get().split('/')[-1])
+        self.set_movie_name(self.__video_archive_path.get())
         self.file_menu.entryconfig('Save (ctrl+S)', state='normal')
         self.__convert_button_text.set('PLAY')
         self.set_main_buttons_state('disabled')
         self.set_tool_bar_state('active')
+        self.menu_bar.entryconfig('Resolution', state='disabled')
 
     # PLAYER ACTIONS
     # Decides whether the video is to be converted or can be played from loaded list.
@@ -616,15 +625,13 @@ class AsciiMovie(tk.Tk):
         self.save_current_config()
         frc = fc.FrameConverter(self, int(self.__pixelate_choice.get()), rot_right, rot_left,
                                 is_inverted, self.MAIN_COLOUR, self.RES_Y, self.RES_X)
-        ret, duration, frame_count, fps, length, height, px_length, px_height = frc.convert(self.__video_path.get())
+        ret, duration, frame_count, fps, length, height = frc.convert(self.__video_path.get())
         self.__ascii_frames = ret
         self.__converted_movie_duration = duration
         self.__converted_movie_frame_count = frame_count
         self.__converted_movie_fps = fps
         self.__converted_movie_length = length
         self.__converted_movie_height = height
-        self.__converted_movie_px_length = px_length
-        self.__converted_movie_px_height = px_height
         self.set_main_buttons_state('active')
 
         if self.force_cancel.get() == 0:
@@ -639,8 +646,8 @@ class AsciiMovie(tk.Tk):
                                self.__converted_movie_frame_count,
                                self.__converted_movie_length,
                                self.__converted_movie_height,
-                               self.__converted_movie_px_length,
-                               self.__converted_movie_px_height,
+                               self.RES_Y,
+                               self.RES_X,
                                self.__is_looped,
                                self.__config['logo'],
                                self.MAIN_COLOUR,
@@ -655,7 +662,8 @@ class AsciiMoviePlayer(tk.Toplevel):
 
     RELIEF = tk.GROOVE
     MOVE = 90
-    def __init__(self, master: AsciiMovie, frame_list, duration, frame_count, length, height, px_l, px_h, is_looped,
+
+    def __init__(self, master: AsciiMovie, frame_list, duration, frame_count, length, height, res_y, res_x, is_looped,
                  logo_path, main_colour, light_colour, fg_colour, **kw):
         tk.Toplevel.__init__(self, master, **kw)
         self.grab_set()
@@ -665,7 +673,9 @@ class AsciiMoviePlayer(tk.Toplevel):
         # --- Layout configuration -------------------------
         self.iconphoto(False, tk.PhotoImage(file=logo_path))
         # self.geometry(f'{length}x{height}')
-        self.geometry('800x1200')
+        # self.geometry('800x1200')
+        # self.attributes('-fullscreen', True)
+        self.geometry(f'{res_x}x{res_y}')
         self.resizable(True, True)
         self.grid_propagate(0)
         self.columnconfigure(0, weight=1)
@@ -681,10 +691,11 @@ class AsciiMoviePlayer(tk.Toplevel):
 
         # --- Fields configuration ----------------------------
         self.__ascii_frames = frame_list
+        self.__is_fullscreen = False
         self.__length = length
         self.__height = height
-        self.__px_length = px_l
-        self.__px_height = px_h
+        self.__res_y = res_y
+        self.__res_x = res_x
         self.__duration = duration
         self.__frame_count = frame_count
         self.__display_text = tk.StringVar(self, "")
@@ -701,6 +712,7 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.bind('<Right>', self.push_forward)
         self.bind('<Left>', self.push_backward)
         self.bind('<Escape>', lambda e: self.destroy())
+        self.bind('<F11>', self.decide_screen_mode)
 
         # PLAY/PAUSE BUTTON
         self.play_pause_button = tk.Button(self.display_frame, textvariable=self.__button_text, relief=RELIEF,
@@ -717,7 +729,7 @@ class AsciiMoviePlayer(tk.Toplevel):
 
         # DISPLAY LABEL
         self.display = tk.Label(self.display_frame, bg='black', fg='white', textvariable=self.__display_text,
-                                justify='left', font=('Consolas', 8), anchor='center', width=self.__px_length)
+                                justify='left', font=('Consolas', 8), anchor='center', width=30)
         self.display.grid(row=0, column=0, columnspan=2, sticky='news')
         self.display.grid_propagate(0)
 
@@ -726,6 +738,14 @@ class AsciiMoviePlayer(tk.Toplevel):
                                       command=self.rewind)
         self.movie_bar.grid(row=1, column=0, columnspan=2, sticky='news')
         self.movie_bar.grid_propagate(0)
+
+    def decide_screen_mode(self, e=None):
+        if self.__is_fullscreen:
+            self.attributes('-fullscreen', False)
+            self.__is_fullscreen = False
+        else:
+            self.attributes('-fullscreen', True)
+            self.__is_fullscreen = True
 
     def push_forward(self, e=None):
         self.pause_video()
