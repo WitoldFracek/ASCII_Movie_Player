@@ -1,7 +1,6 @@
 from PIL import Image, ImageTk
 import cv2
 import tkinter as tk
-import tkinter.ttk
 from tkinter import font as tkFont
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
@@ -11,6 +10,8 @@ import pickle as rick
 import os
 import frame_converter as fc
 import zipfile as zip
+import time
+
 
 # constants
 LOADING_BAR_FRACTIONS = 100
@@ -141,7 +142,7 @@ class AsciiMovie(tk.Tk):
         }
 
         self.FONT = ('Weibei', 14)
-        #Arial Narrow, Cooper Black, Comic Sans MS
+        #Arial Narrow, Cooper Black, Comic Sans MS, Weibei
 
 
         # --- variables ----------------------------------
@@ -516,7 +517,9 @@ class AsciiMovie(tk.Tk):
     def load_to_archive(self, e=None):
         if not self.__ascii_frames:
             messagebox.showerror(title='ERROR', message='No frames converted')
-            return
+
+        if os.path.exists('frame data.pkl'):
+            os.remove('frame data.pkl')
         file_path: str = asksaveasfilename(initialdir=os.getcwd(), title='Select saving location',
                                            filetypes=(('ASCII Movie Converter files', '.amc'),))
         if file_path == "":
@@ -534,6 +537,7 @@ class AsciiMovie(tk.Tk):
             rick.dump(self.__converted_movie_px_height, file)
         with zip.ZipFile(file_path, 'w') as myzip:
             myzip.write('frame data.pkl')
+        os.remove('frame data.pkl')
 
     # Loads converted ASCII frames from a pickle file.
     def load_from_archive(self, e=None):
@@ -675,7 +679,7 @@ class AsciiMoviePlayer(tk.Toplevel):
         # self.geometry(f'{length}x{height}')
         # self.geometry('800x1200')
         # self.attributes('-fullscreen', True)
-        self.geometry(f'{res_x}x{res_y}')
+        self.geometry(f'{res_y}x{res_x}')
         self.resizable(True, True)
         self.grid_propagate(0)
         self.columnconfigure(0, weight=1)
@@ -797,6 +801,7 @@ class AsciiMoviePlayer(tk.Toplevel):
             self.__button_text.set('PLAY')
 
     def update_label(self, gen):
+        start = time.time()
         try:
             frame = next(gen)
         except StopIteration:
@@ -804,24 +809,9 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.__display_text.set(frame)
         passed = self.__current_frame.get()/self.__frame_count
         self.movie_bar.set(passed, min(1, passed+self.__delta))
-        self.display.after(self.__delay, self.update_label, gen)
-
-
-def create_style(main_colour, light_colour):
-    style = tkinter.ttk.Style()
-    style.element_create("My.Horizontal.Scrollbar.trough", "from", "default")
-    style.layout("My.Horizontal.TScrollbar",
-                 [('My.Horizontal.Scrollbar.trough',
-                   {'children':
-                    [('Horizontal.Scrollbar.leftarrow', {'side': 'left', 'sticky': ''}),
-                     ('Horizontal.Scrollbar.rightarrow', {'side': 'right', 'sticky': ''}),
-                     ('Horizontal.Scrollbar.thumb', {'unit': '1', 'children': [('Horizontal.Scrollbar.grip', {'sticky': ''})],
-                      'sticky': 'nswe'})], 'sticky': 'we'})])
-    style.configure("My.Horizontal.TScrollbar", *style.configure("Horizontal.TScrollbar"))
-    style.configure("My.Horizontal.TScrollbar", troughcolor='black', activebackground=light_colour, bg=main_colour)
-    return style
-
-
+        end = time.time()
+        additional_delay = int(round((end - start), 4) * 1000)
+        self.display.after(self.__delay-additional_delay, self.update_label, gen)
 
 
 
