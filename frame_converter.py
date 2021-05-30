@@ -36,8 +36,6 @@ class FrameConverter:
         frames = []
         length = 0
         height = 0
-        px_length = 0
-        px_height = 0
         while success:
             if self.__parent.force_cancel.get() == 1:
                 return [], 0, 0, 0, 0, 0
