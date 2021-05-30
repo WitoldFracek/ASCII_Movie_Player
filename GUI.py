@@ -71,7 +71,7 @@ def create_config():
         json.dump(conf, file)
 
 
-# Returns a dict of stored in ascii_movue_config.json configurations
+# Returns a dict of stored in ascii_movie_config.json configurations
 def get_config():
     with open(CONFIG) as file:
         conf = json.load(file)
@@ -84,7 +84,7 @@ def save_config(config):
         json.dump(config, file)
 
 
-# Returns a frame from a video that is used as minature
+# Returns a frame from a video that is used as a miniature
 def get_quarter_frame(path: str):
     if not os.path.exists(path):
         return None
@@ -141,9 +141,8 @@ class AsciiMovie(tk.Tk):
             'GRAY': ('#909090', '#b8b8b8', 'black')
         }
 
+        # --- font --------------------------------
         self.FONT = ('Weibei', 14)
-        #Arial Narrow, Cooper Black, Comic Sans MS, Weibei
-
 
         # --- variables ----------------------------------
         self.__video_path = tk.StringVar(self, self.__config['video path'])
@@ -178,6 +177,7 @@ class AsciiMovie(tk.Tk):
         self.rowconfigure(1, weight=1)
         self.grid_propagate(0)
 
+        # --- prepare layouts ----------------------------
         self.set_icon()
         self.prepare_main_layout()
         self.prepare_file_menu_bar()
@@ -185,6 +185,7 @@ class AsciiMovie(tk.Tk):
         self.prepare_main_manu()
         self.prepare_loading_bar()
 
+    # Sets application icon.
     def set_icon(self):
         if not os.path.exists(self.__config['logo']):
             if not os.path.exists(self.__config['error']):
@@ -195,6 +196,7 @@ class AsciiMovie(tk.Tk):
         else:
             self.iconphoto(False, tk.PhotoImage(file=self.__config['logo']))
 
+    # Prepares the main layout of essential components.
     def prepare_main_layout(self):
         self.menu_frame = tk.Frame(self, bg='black', padx=5)
         self.menu_frame.grid(row=0, column=0, sticky='news')
@@ -221,6 +223,7 @@ class AsciiMovie(tk.Tk):
         for n in range(LOADING_BAR_FRACTIONS):
             self.loading_bar_frame.columnconfigure(n, weight=1)
 
+    # Prepares the toolbar for the application.
     def prepare_file_menu_bar(self):
         self.menu_bar = tk.Menu(self)
         self.config(menu=self.menu_bar)
@@ -228,6 +231,7 @@ class AsciiMovie(tk.Tk):
         self.menu_bar.add_cascade(label='Resolution', menu=self.prepare_resolution_cascade(self.menu_bar))
         self.menu_bar.add_cascade(label='Themes', menu=self.prepare_colour_cascade(self.menu_bar))
 
+    # Prepares a cascade of available file-related options such as save or load.
     def prepare_file_menu_cascade(self, parent_menu):
         self.file_menu = tk.Menu(parent_menu)
         self.file_menu.add_command(label='Open mp4 (ctrl+O)', command=self.open_file)
@@ -237,6 +241,7 @@ class AsciiMovie(tk.Tk):
             self.file_menu.entryconfig('Save (ctrl+S)', state='disabled')
         return self.file_menu
 
+    # Prepares a cascade of available color themes.
     def prepare_colour_cascade(self, parent_menu):
         self.colour_menu = tk.Menu(parent_menu)
         for key in self.__colours:
@@ -244,6 +249,7 @@ class AsciiMovie(tk.Tk):
             self.colour_menu.add_command(label=key.lower(), command=lambda x=colour: self.set_colour_theme(x))
         return self.colour_menu
 
+    # Prepares a cascade of available resolution options.
     def prepare_resolution_cascade(self, parent_menu):
         self.resolution_menu = tk.Menu(parent_menu)
         if (self.__config['res y'], self.__config['res x']) == RES_4x3:
@@ -275,6 +281,7 @@ class AsciiMovie(tk.Tk):
                                              variable=self.resolution_menu.res_9_16_check)
         return self.resolution_menu
 
+    # BEGIN --- select resolution.
     def select_4_3_res(self, e=None):
         self.RES_Y = RES_4x3[0]
         self.RES_X = RES_4x3[1]
@@ -306,7 +313,9 @@ class AsciiMovie(tk.Tk):
         self.resolution_menu.res_16_9_check.set(0)
         self.resolution_menu.res_3_4_check.set(0)
         self.parameter_change_convertoin()
+    # END --- select resolution.
 
+    # Saves the chosen colour theme to program variables and calls update.
     def set_colour_theme(self, colour):
         c1, c2, c3 = colour
         self.MAIN_COLOUR = c1
@@ -318,6 +327,7 @@ class AsciiMovie(tk.Tk):
         save_config(self.__config)
         self.update_colours()
 
+    # Updates the colour theme for the application.
     def update_colours(self):
         self.pixelate_option_menu.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
         self.check_left.config(highlightcolor=self.LIGHT_MAIN_COLOUR, activebackground=self.LIGHT_MAIN_COLOUR)
@@ -329,12 +339,15 @@ class AsciiMovie(tk.Tk):
         self.clear_loading_bar()
         self.update()
 
+    # BEGIN --- Images related methods
+    # Decides whether to use standard miniature or to get miniature from the movie.
     def prepare_minature(self):
         if self.__video_path.get() == "":
             self.prepare_sandard_minature()
         else:
             self.prepare_custom_minature()
 
+    # Prepares standard ASCII Movie miniature.
     def prepare_sandard_minature(self):
         self.minature_frame.update()
         if not os.path.exists(self.__config['cover photo']):
@@ -349,6 +362,7 @@ class AsciiMovie(tk.Tk):
         self.minature_label.im = image2
         self.minature_label.grid(row=0, column=0, sticky='news')
 
+    # Prepares error miniature if movie or data in config file is corrupted.
     def prepare_error_minature(self):
         self.minature_frame.update()
         if not os.path.exists(self.__config['error']):
@@ -363,6 +377,7 @@ class AsciiMovie(tk.Tk):
         self.minature_label.im = image2
         self.minature_label.grid(row=0, column=0, sticky='news')
 
+    # Prepares a miniature from the selected movie.
     def prepare_custom_minature(self):
         self.minature_frame.update()
         if not os.path.exists(self.__config['video path']):
@@ -380,6 +395,7 @@ class AsciiMovie(tk.Tk):
         self.minature_label.im = image2
         self.minature_label.grid(row=0, column=0, sticky='news', padx=3, pady=3)
 
+    # Prepares main menu buttons, checkboxes and labels.
     def prepare_main_manu(self):
         self.movie_name_label = tk.Label(self.menu_frame, textvariable=self.__video_name, font=self.FONT,
                                          bg='black', fg='white')
@@ -449,17 +465,20 @@ class AsciiMovie(tk.Tk):
                                      command=self.decide_main_button_action)
         self.play_button.grid(row=5, column=0, sticky='news', padx=3, pady=3)
 
+    # Prepares fragments of the loading bar.
     def prepare_loading_bar(self):
         self.bar_parts = [tk.Frame(self.loading_bar_frame, bg='black') for _ in range(LOADING_BAR_FRACTIONS)]
         for n in range(LOADING_BAR_FRACTIONS):
             self.bar_parts[n].grid(row=0, column=n, sticky='news', pady=3)
 
+    # Defines actions before closing the main window.
     def on_close(self):
         if not messagebox.askyesno('QUIT', "Do you want to quit?"):
             return
         self.save_current_config()
         self.destroy()
 
+    # Saves data stored by program variables in the json config file.
     def save_current_config(self):
         self.__config['video path'] = self.__video_path.get()
         self.__config['main colour'] = self.MAIN_COLOUR
@@ -473,6 +492,7 @@ class AsciiMovie(tk.Tk):
         self.__config['res y'] = self.RES_Y
         save_config(self.__config)
 
+    # Changes the displayed movie name.
     def set_movie_name(self, path: str):
         name = path.split('/')[-1]
         if len(name) > 25:
@@ -480,7 +500,7 @@ class AsciiMovie(tk.Tk):
         else:
             self.__video_name.set(name)
 
-
+    # Sets the state of buttons of the main menu (active or disabled)
     def set_main_buttons_state(self, state):
         self.check_right.config(state=state)
         self.check_left.config(state=state)
@@ -488,6 +508,7 @@ class AsciiMovie(tk.Tk):
         self.pixelate_option_menu.config(state=state)
         self.set_tool_bar_state(state)
 
+    # Sets the state of toolbar buttons (active or disabled)
     def set_tool_bar_state(self, state):
         self.menu_bar.entryconfig('File', state=state)
         self.menu_bar.entryconfig('Themes', state=state)
@@ -539,7 +560,7 @@ class AsciiMovie(tk.Tk):
             myzip.write('frame data.pkl')
         os.remove('frame data.pkl')
 
-    # Loads converted ASCII frames from a pickle file.
+    # Loads converted ASCII frames from an amc file.
     def load_from_archive(self, e=None):
         path = askopenfilename(initialdir=os.getcwd(), title='Select saved frames',
                                filetypes=(('ASCII Movie Converter files', '.amc'),))
@@ -548,22 +569,21 @@ class AsciiMovie(tk.Tk):
         try:
             with zip.ZipFile(path) as myzip:
                 with myzip.open('frame data.pkl', 'r') as file:
-                    try:
-                        self.__ascii_frames = rick.load(file)
-                        self.__converted_movie_duration = rick.load(file)
-                        self.__converted_movie_frame_count = rick.load(file)
-                        self.__converted_movie_fps = rick.load(file)
-                        self.__converted_movie_length = rick.load(file)
-                        self.__converted_movie_height = rick.load(file)
-                        self.__converted_movie_px_length = rick.load(file)
-                        self.__converted_movie_px_height = rick.load(file)
-                    except EOFError:
-                        messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
-                        return
-                    except TypeError:
-                        messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
-                        return
+                    self.__ascii_frames = rick.load(file)
+                    self.__converted_movie_duration = rick.load(file)
+                    self.__converted_movie_frame_count = rick.load(file)
+                    self.__converted_movie_fps = rick.load(file)
+                    self.__converted_movie_length = rick.load(file)
+                    self.__converted_movie_height = rick.load(file)
+                    self.__converted_movie_px_length = rick.load(file)
+                    self.__converted_movie_px_height = rick.load(file)
         except zip.BadZipFile:
+            messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+            return
+        except EOFError:
+            messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
+            return
+        except TypeError:
             messagebox.showerror('WARNING', 'Selected file is corrupted. Select a different file')
             return
 
@@ -597,6 +617,7 @@ class AsciiMovie(tk.Tk):
             self.__convert_button_text.set('CONVERT')
             self.file_menu.entryconfig('Save (ctrl+S)', state='disabled')
 
+    # Clears selected conversion options.
     def clear_menu_options(self):
         self.check_left.deselect()
         self.check_right.deselect()
@@ -604,19 +625,23 @@ class AsciiMovie(tk.Tk):
         self.check_inverse_colours.deselect()
         self.__pixelate_choice.set('20')
 
+    # Sets loading bar fragments to black.
     def clear_loading_bar(self):
         for fr in self.bar_parts:
             fr.config(bg='black')
 
+    # Changes the behavior of the main button if some changes to conversion settings were made.
     def parameter_change_convertoin(self, e=None):
         self.force_cancel.set(1)
         self.__convert_button_text.set('CONVERT')
         self.after(1000, self.force_cancel.set, 0)
 
+    # Deselects the rotate left checkbox.
     def deselect_left(self, e=None):
         self.check_left.deselect()
         self.parameter_change_convertoin()
 
+    # Deselects the rrotate right checkbox.
     def deselect_right(self, e=None):
         self.check_right.deselect()
         self.parameter_change_convertoin()
@@ -662,6 +687,7 @@ class AsciiMovie(tk.Tk):
             fr.config(bg='black')
 
 
+# A class that extends tkiter Toplevel window.
 class AsciiMoviePlayer(tk.Toplevel):
 
     RELIEF = tk.GROOVE
@@ -676,9 +702,6 @@ class AsciiMoviePlayer(tk.Toplevel):
 
         # --- Layout configuration -------------------------
         self.iconphoto(False, tk.PhotoImage(file=logo_path))
-        # self.geometry(f'{length}x{height}')
-        # self.geometry('800x1200')
-        # self.attributes('-fullscreen', True)
         self.geometry(f'{res_y}x{res_x}')
         self.resizable(True, True)
         self.grid_propagate(0)
@@ -713,8 +736,6 @@ class AsciiMoviePlayer(tk.Toplevel):
 
         # --- GUI elements configuration -------------------------------------
         self.bind('<space>', self.decide_action)
-        self.bind('<Right>', self.push_forward)
-        self.bind('<Left>', self.push_backward)
         self.bind('<Escape>', lambda e: self.destroy())
         self.bind('<F11>', self.decide_screen_mode)
 
@@ -743,6 +764,7 @@ class AsciiMoviePlayer(tk.Toplevel):
         self.movie_bar.grid(row=1, column=0, columnspan=2, sticky='news')
         self.movie_bar.grid_propagate(0)
 
+    # Sets the screen mode.
     def decide_screen_mode(self, e=None):
         if self.__is_fullscreen:
             self.attributes('-fullscreen', False)
@@ -751,26 +773,13 @@ class AsciiMoviePlayer(tk.Toplevel):
             self.attributes('-fullscreen', True)
             self.__is_fullscreen = True
 
-    def push_forward(self, e=None):
-        self.pause_video()
-        self.after(1000, lambda: None)
-        self.__current_frame.set(min(self.__frame_count, self.__current_frame.get() + AsciiMoviePlayer.MOVE))
-        self.play_video()
-        self.__button_text.set('PAUSE')
-
-    def push_backward(self, e=None):
-        self.pause_video()
-        self.after(1000, lambda: None)
-        self.__current_frame.set(max(0, self.__current_frame.get() - AsciiMoviePlayer.MOVE))
-        self.play_video()
-        self.__button_text.set('PAUSE')
-
     def rewind(self, *a):
         self.pause_video()
         ratio = float(a[1])
         self.__current_frame.set(int(self.__frame_count * ratio))
         self.movie_bar.set(ratio, ratio+self.__delta)
 
+    # Decides the action of play/pause button
     def decide_action(self, e=None):
         if self.__button_text.get() == 'PLAY':
             self.__button_text.set('PAUSE')
@@ -778,15 +787,18 @@ class AsciiMoviePlayer(tk.Toplevel):
         else:
             self.pause_video()
 
+    # Starts the video
     def play_video(self):
         self.__is_paused.set(0)
         gen = self.frame_generator()
         self.update_label(gen)
 
+    # Stops the video
     def pause_video(self):
         self.__is_paused.set(1)
         self.__button_text.set('PLAY')
 
+    # Generator that returns the next to dispaly frame
     def frame_generator(self):
         while self.__current_frame.get() < self.__movie_length and self.__is_paused.get() == 0:
             current = self.__current_frame.get()

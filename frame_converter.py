@@ -4,8 +4,8 @@ import numpy as np
 import os
 from tkinter import StringVar
 
+# ASCII chars used
 ASCII = ['  ', '..', '<<', 'cc', '77', '33', 'xx', 'ee', 'kk', '##', '■■']
-SOMBRA_PURPLE = '#a350f9'
 
 
 class FrameConverter:
@@ -19,13 +19,14 @@ class FrameConverter:
         self.__height = height
         self.__width = width
 
+    # A method that converts pixelated frames into ASCII characters
     def convert(self, path: str):
+        # Check if the file exists or if it is an mp4 file.
         if not os.path.exists(path):
             return
         if not path.endswith('.mp4'):
             return
 
-        # --- BEGIN ------
         video = cv2.VideoCapture(path)
         fps = video.get(cv2.CAP_PROP_FPS)
         frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -42,6 +43,7 @@ class FrameConverter:
                 return [], 0, 0, 0, 0, 0
             success, image = video.read()
             if success:
+                # cv2 uses different images coding than PIL thus cvtColor
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 image_pil = Image.fromarray(image).resize((self.__height, self.__width), Image.NEAREST)
                 length, height = image_pil.size[0], image_pil.size[1]
@@ -58,8 +60,10 @@ class FrameConverter:
             fr.config(bg=self.__colour.get())
         return frames, duration, frame_count, fps, length, height
 
+    # A method that converts PIL Image into ASCII characters
     def pixelate(self, image):
         image = image.resize((image.size[0] // self.__pixel_size, image.size[1] // self.__pixel_size), Image.NEAREST)
+        # Convert images to black'n'white
         image = image.convert('L')
         if self.__rotate_left:
             image = image.rotate(90)
