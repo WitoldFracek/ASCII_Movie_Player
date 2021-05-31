@@ -189,7 +189,7 @@ class AsciiMovie(tk.Tk):
     def set_icon(self):
         if not os.path.exists(self.__config['logo']):
             if not os.path.exists(self.__config['error']):
-                messagebox.showerror('CONFIG FILE DAMAGED', 'Configuration file is damaged or some data is missing.')
+                messagebox.showerror('CONFIG FILE IS DAMAGED', 'Configuration file is damaged or some data is missing.')
                 return
             else:
                 self.iconphoto(False, tk.PhotoImage(file=self.__config['error']))
