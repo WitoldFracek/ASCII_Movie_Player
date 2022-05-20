@@ -8,7 +8,7 @@ from tkinter import messagebox
 import json
 import pickle as rick
 import os
-import frame_converter as fc
+import frame_GPU_converter as fc
 import zipfile as zip
 import time
 
